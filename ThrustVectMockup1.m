@@ -1,4 +1,6 @@
 clc,clearvars
+close all;
+clear;
 
 % Resources
 
@@ -9,8 +11,8 @@ clc,clearvars
 
 % Two degrees of freedom, thetaA and thetaB. A for the top bracket, B for the bracket connected to the engine. 
 
-thetaA = 0.2;
-thetaB = -0.2;
+thetaA = 0;
+thetaB = 0;
 
 % The origin is defined as the common pivot point of both DoF.
 
@@ -20,7 +22,7 @@ axisA = [1,0,0];
 
 % Lists for parametric (choose)
 
-t = linspace(-200,200,51);
+t = linspace(-200,200,11);
 t2 = linspace(0,2*pi,101);
 
 % Line 1 = axisA, 
@@ -33,46 +35,70 @@ Z1 = t*axisA(3);
 
 axisBPreRot = [0,1,0];
 
-axisB = rotate(axisBPreRot,thetaA,[0,0,0],axisA);
 
-X2 = t*axisB(1);
-Y2 = t*axisB(2);
-Z2 = t*axisB(3);
+m = 1;
+mov(m) = getframe();
 
-%Line 3: Circle representation
+figure(1);
 
-%original position of circle with no rotation
+for n = 1:100
+    
+    axisB = rotate(axisBPreRot,thetaA,[0,0,0],axisA);
+    
+    X2 = t*axisB(1);
+    Y2 = t*axisB(2);
+    Z2 = t*axisB(3);
+    
+    %Line 3: Circle representation
+    
+    %original position of circle with no rotation
+    
+    X3 = 100 * cos(t2);
+    Y3 = 100 * sin(t2);
+    Z3 = 0 * t2 - 55;
+    
+    for i = 1:101
+        %first rotation by thetaA around axisA
+        outpoint1 = rotate([X3(i),Y3(i),Z3(i)],thetaA,[0,0,0],axisA);
+        X3(i) = outpoint1(1);
+        Y3(i) = outpoint1(2);
+        Z3(i) = outpoint1(3);
+    
+        %second rotation by thetaB around axisB
+        outpoint2 = rotate([X3(i),Y3(i),Z3(i)],thetaB,[0,0,0],axisB);
+        X3(i) = outpoint2(1);
+        Y3(i) = outpoint2(2);
+        Z3(i) = outpoint2(3);
+    end
+    
+    %Plots
 
-X3 = 100 * cos(t2);
-Y3 = 100 * sin(t2);
-Z3 = 0 * t2 - 55;
+    axis equal
+    
+    line1 = plot3(X1,Y1,Z1);
+    xlim([-200,200]);
+    ylim([-200,200]);
+    zlim([-200,200]);
+    hold on
+    line2 = plot3(X2,Y2,Z2);
+    line3 = plot3(X3,Y3,Z3);
+    drawnow;
+    
+    hold off
 
-for i = 1:101
-    %first rotation by thetaA around axisA
-    outpoint1 = rotate([X3(i),Y3(i),Z3(i)],thetaA,[0,0,0],axisA);
-    X3(i) = outpoint1(1);
-    Y3(i) = outpoint1(2);
-    Z3(i) = outpoint1(3);
+    %set(gca,'XLim',[-200 200],'YLim',[-200 200],'ZLim',[-200 200]);
 
-    %second rotation by thetaB around axisB
-    outpoint2 = rotate([X3(i),Y3(i),Z3(i)],thetaB,[0,0,0],axisB);
-    X3(i) = outpoint2(1);
-    Y3(i) = outpoint2(2);
-    Z3(i) = outpoint2(3);
+
+    m = m + 1;
+    thetaA = 0.4*sin(0.1*n)
+    thetaB = 0.4*cos(0.1*n)
+    mov(m) = getframe();
+
 end
 
 
 
-%Plots
 
-
-axis equal
-plot3(X1,Y1,Z1)
-hold on
-plot3(X2,Y2,Z2)
-plot3(X3,Y3,Z3)
-
-hold off
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
@@ -103,6 +129,5 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
     pointOut = [xout,yout,zout] + pointCentre;
 end
 
-% Note: the pointCentre function doesn't work yet
-
+% Note: the pointCentre bit doesn't work yet
 
