@@ -11,8 +11,8 @@ clear;
 
 % Two degrees of freedom, thetaA and thetaB. A for the top bracket, B for the bracket connected to the engine. 
 
-thetaA = 0;
-thetaB = 0;
+thetaA = 0.1;
+thetaB = 0.1;
 
 % The origin is defined as the common pivot point of both DoF.
 
@@ -22,18 +22,18 @@ axisA = [1,0,0];
 
 % Lists for parametric (choose)
 
-t = linspace(-200,200,11);
+t = linspace(0,1,11);
 t2 = linspace(0,2*pi,101);
 
-% Line 1 = axisA, 
+% Line 1 = axisA, line 2 = axis B
 
-X1 = t*axisA(1);
-Y1 = t*axisA(2);
-Z1 = t*axisA(3);
+X1 = 200*t*axisA(1);
+Y1 = 200*t*axisA(2);
+Z1 = 200*t*axisA(3);
 
 %Axis B before rotation
 
-axisBPreRot = [0,1,0];
+axisBP = [0,1,0];
 
 
 m = 1;
@@ -43,13 +43,13 @@ figure(1);
 
 for n = 1:100
     
-    axisB = rotate(axisBPreRot,thetaA,[0,0,0],axisA);
+    axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
     
-    X2 = t*axisB(1);
-    Y2 = t*axisB(2);
-    Z2 = t*axisB(3);
+    X2 = 200*t*axisB(1);
+    Y2 = 200*t*axisB(2);
+    Z2 = 200*t*axisB(3);
     
-    %Line 3: Circle representation
+    %Line 3,4 : Circle representation
     
     %original position of circle with no rotation
     
@@ -57,6 +57,36 @@ for n = 1:100
     Y3 = 100 * sin(t2);
     Z3 = 0 * t2 - 55;
     
+    X4 = 100 * cos(t2);
+    Y4 = 100 * sin(t2);
+    Z4 = 0 * t2 - 200;
+
+    %Line 5: axis B without rotation
+
+    X5 = 200*t*axisBP(1);
+    Y5 = 200*t*axisBP(2);
+    Z5 = 200*t*axisBP(3);
+
+    %Line 6: actuator 1 
+
+    act1MountEngine = [100*cos(0),100*sin(0),-200];
+    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaA,[0,0,0],axisA);
+    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaB,[0,0,0],axisB);
+
+    X6 = 200 - t * (200 - act1MountEngine(1));
+    Y6 = 0 - t * (0 - act1MountEngine(2));
+    Z6 = 0 - t * (0 - act1MountEngine(3));
+
+    %Line 7: actuator 2 
+
+    act1MountEngine = [100*cos(pi/2),100*sin(pi/2),-200];
+    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaA,[0,0,0],axisA);
+    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaB,[0,0,0],axisB);
+
+    X7 = 0 - t * (0 - act1MountEngine(1));
+    Y7 = 200 - t * (200 - act1MountEngine(2));
+    Z7 = 0 - t * (0 - act1MountEngine(3));
+
     for i = 1:101
         %first rotation by thetaA around axisA
         outpoint1 = rotate([X3(i),Y3(i),Z3(i)],thetaA,[0,0,0],axisA);
@@ -69,19 +99,36 @@ for n = 1:100
         X3(i) = outpoint2(1);
         Y3(i) = outpoint2(2);
         Z3(i) = outpoint2(3);
+
+        %first rotation by thetaA around axisA
+        outpoint1 = rotate([X4(i),Y4(i),Z4(i)],thetaA,[0,0,0],axisA);
+        X4(i) = outpoint1(1);
+        Y4(i) = outpoint1(2);
+        Z4(i) = outpoint1(3);
+    
+        %second rotation by thetaB around axisB
+        outpoint2 = rotate([X4(i),Y4(i),Z4(i)],thetaB,[0,0,0],axisB);
+        X4(i) = outpoint2(1);
+        Y4(i) = outpoint2(2);
+        Z4(i) = outpoint2(3);
+
     end
     
     %Plots
-
-    axis equal
-    
+  
     line1 = plot3(X1,Y1,Z1);
+    axis equal
+    set(gca, 'Projection','perspective')
     xlim([-200,200]);
     ylim([-200,200]);
-    zlim([-200,200]);
+    zlim([-500,200]);
     hold on
-    line2 = plot3(X2,Y2,Z2);
+    %line2 = plot3(X2,Y2,Z2);
     line3 = plot3(X3,Y3,Z3);
+    line4 = plot3(X4,Y4,Z4);
+    line5 = plot3(X5,Y5,Z5);
+    line6 = plot3(X6,Y6,Z6);
+    line7 = plot3(X7,Y7,Z7);
     drawnow;
     
     hold off
@@ -90,8 +137,8 @@ for n = 1:100
 
 
     m = m + 1;
-    thetaA = 0.4*sin(0.1*n)
-    thetaB = 0.4*cos(0.1*n)
+    thetaA = 0.4*sin(0.1*n);
+    thetaB = 0.4*cos(0.1*n);
     mov(m) = getframe();
 
 end
