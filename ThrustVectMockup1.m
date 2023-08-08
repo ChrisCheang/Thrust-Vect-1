@@ -25,7 +25,7 @@ axisA = [1,0,0];
 t = linspace(0,1,11);
 t2 = linspace(0,2*pi,101);
 
-% Line 1 = axisA, line 2 = axis B
+% Line 1 = axisA, line 2 = axis B (rotated)
 
 X1 = 200*t*axisA(1);
 Y1 = 200*t*axisA(2);
@@ -75,17 +75,27 @@ for n = 1:100
 
     X6 = 200 - t * (200 - act1MountEngine(1));
     Y6 = 0 - t * (0 - act1MountEngine(2));
-    Z6 = 0 - t * (0 - act1MountEngine(3));
+    Z6 = 55 - t * (55 - act1MountEngine(3));
 
     %Line 7: actuator 2 
 
-    act1MountEngine = [100*cos(pi/2),100*sin(pi/2),-200];
-    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaA,[0,0,0],axisA);
-    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaB,[0,0,0],axisB);
+    act2MountEngine = [100*cos(pi/2),100*sin(pi/2),-200];
+    act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaA,[0,0,0],axisA);
+    act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaB,[0,0,0],axisB);
 
-    X7 = 0 - t * (0 - act1MountEngine(1));
-    Y7 = 200 - t * (200 - act1MountEngine(2));
-    Z7 = 0 - t * (0 - act1MountEngine(3));
+    X7 = 0 - t * (0 - act2MountEngine(1));
+    Y7 = 200 - t * (200 - act2MountEngine(2));
+    Z7 = 55 - t * (55 - act2MountEngine(3));
+
+    %Line 8: vertical axis
+
+    verticalAxis = [0,0,-200];
+    verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaA,[0,0,0],axisA);
+    verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaB,[0,0,0],axisB);
+
+    X8 = 0 - t * (0 - verticalAxis(1));
+    Y8 = 0 - t * (0 - verticalAxis(2));
+    Z8 = 0 - t * (0 - verticalAxis(3));
 
     for i = 1:101
         %first rotation by thetaA around axisA
@@ -116,19 +126,20 @@ for n = 1:100
     
     %Plots
   
-    line1 = plot3(X1,Y1,Z1);
+    line1 = plot3(X1,Y1,Z1,'--');
     axis equal
     set(gca, 'Projection','perspective')
     xlim([-200,200]);
     ylim([-200,200]);
     zlim([-500,200]);
     hold on
-    %line2 = plot3(X2,Y2,Z2);
+    line2 = plot3(X2,Y2,Z2,'--');
     line3 = plot3(X3,Y3,Z3);
     line4 = plot3(X4,Y4,Z4);
-    line5 = plot3(X5,Y5,Z5);
+    %line5 = plot3(X5,Y5,Z5);
     line6 = plot3(X6,Y6,Z6);
     line7 = plot3(X7,Y7,Z7);
+    line8 = plot3(X8,Y8,Z8,'--');
     drawnow;
     
     hold off
