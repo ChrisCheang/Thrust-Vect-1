@@ -11,8 +11,8 @@ clear;
 
 % Two degrees of freedom, thetaA and thetaB. A for the top bracket, B for the bracket connected to the engine. 
 
-thetaA = 0.1;
-thetaB = 0.1;
+thetaA = 0;
+thetaB = 0;
 
 % The origin is defined as the common pivot point of both DoF.
 
@@ -27,9 +27,9 @@ t2 = linspace(0,2*pi,101);
 
 % Line 1 = axisA, line 2 = axis B (rotated)
 
-X1 = 200*t*axisA(1);
-Y1 = 200*t*axisA(2);
-Z1 = 200*t*axisA(3);
+X1 = 200*(2*t - 1)*axisA(1);
+Y1 = 200*(2*t - 1)*axisA(2);
+Z1 = 200*(2*t - 1)*axisA(3);
 
 %Axis B before rotation
 
@@ -41,13 +41,14 @@ mov(m) = getframe();
 
 figure(1);
 
-for n = 1:100
+for n = 1:101
+    
     
     axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
     
-    X2 = 200*t*axisB(1);
-    Y2 = 200*t*axisB(2);
-    Z2 = 200*t*axisB(3);
+    X2 = 200*(2*t - 1)*axisB(1);
+    Y2 = 200*(2*t - 1)*axisB(2);
+    Z2 = 200*(2*t - 1)*axisB(3);
     
     %Line 3,4 : Circle representation
     
@@ -126,7 +127,7 @@ for n = 1:100
     
     %Plots
   
-    line1 = plot3(X1,Y1,Z1,'--');
+    line1 = plot3(X1,Y1,Z1,'--','Color','b');
     axis equal
     set(gca, 'Projection','perspective')
     xlim([-200,200]);
@@ -148,13 +149,23 @@ for n = 1:100
 
 
     m = m + 1;
-    thetaA = 0.4*sin(0.1*n);
-    thetaB = 0.4*cos(0.1*n);
+
+    if n<50
+        thetaA = 0.4*sin(0.04*n*pi);
+    else 
+        thetaB = 0.4*sin(0.04*n*pi);
+    end
+
+    actALen = distance([200,0,55],act1MountEngine);
+    actBLen = distance([0,200,55],act2MountEngine);
+        
+    thetaA
+    thetaB
+
+
     mov(m) = getframe();
 
 end
-
-
 
 
 
@@ -187,5 +198,8 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
     pointOut = [xout,yout,zout] + pointCentre;
 end
 
+function dist = distance(pointA,pointB)
+    dist = sqrt((pointA(1)-pointB(1))^2 + (pointA(2)-pointB(2))^2 + (pointA(3)-pointB(3))^2);
+end
 % Note: the pointCentre bit doesn't work yet
 
