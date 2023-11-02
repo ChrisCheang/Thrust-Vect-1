@@ -16,6 +16,13 @@ thetaB = 0;
 
 % The origin is defined as the common pivot point of both DoF.
 
+% Dimensions for the engine
+
+rEngine = 76  % radius of the actuator engine mounts
+lPivot = 270  % axial (z) distance between the pivot point and the engine actuator mount points
+hMount = 10 % axial (z) distance between the pivot point and the stationary actuator mount points
+rMount = 120 % radius of the stationary actuator mounts
+aMax = 10*pi/180 % maximum gimbal angle in radians
 
 % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
 axisA = [1,0,0];
@@ -41,9 +48,18 @@ mov(m) = getframe();
 
 figure(1);
 
-for n = 1:101
+
+actALens= [];
+actBLens = [];
+
+
+for n = 0:100
     
-    
+
+    thetaA = aMax*cos(0.04*n*pi);
+    thetaB = aMax*sin(0.04*n*pi);
+
+
     axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
     
     X2 = 200*(2*t - 1)*axisB(1);
@@ -54,13 +70,13 @@ for n = 1:101
     
     %original position of circle with no rotation
     
-    X3 = 100 * cos(t2);
-    Y3 = 100 * sin(t2);
+    X3 = rEngine * cos(t2);
+    Y3 = rEngine * sin(t2);
     Z3 = 0 * t2 - 55;
     
-    X4 = 100 * cos(t2);
-    Y4 = 100 * sin(t2);
-    Z4 = 0 * t2 - 200;
+    X4 = rEngine * cos(t2);
+    Y4 = rEngine * sin(t2);
+    Z4 = 0 * t2 - lPivot;
 
     %Line 5: axis B without rotation
 
@@ -70,27 +86,27 @@ for n = 1:101
 
     %Line 6: actuator 1 
 
-    act1MountEngine = [100*cos(0),100*sin(0),-200];
+    act1MountEngine = [rEngine*cos(0),rEngine*sin(0),-lPivot];
     act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaA,[0,0,0],axisA);
     act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaB,[0,0,0],axisB);
 
-    X6 = 200 - t * (200 - act1MountEngine(1));
+    X6 = rMount - t * (rMount - act1MountEngine(1));
     Y6 = 0 - t * (0 - act1MountEngine(2));
-    Z6 = 55 - t * (55 - act1MountEngine(3));
+    Z6 = hMount - t * (hMount - act1MountEngine(3));
 
     %Line 7: actuator 2 
 
-    act2MountEngine = [100*cos(pi/2),100*sin(pi/2),-200];
+    act2MountEngine = [rEngine*cos(pi/2),rEngine*sin(pi/2),-lPivot];
     act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaA,[0,0,0],axisA);
     act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaB,[0,0,0],axisB);
 
     X7 = 0 - t * (0 - act2MountEngine(1));
-    Y7 = 200 - t * (200 - act2MountEngine(2));
-    Z7 = 55 - t * (55 - act2MountEngine(3));
+    Y7 = rMount - t * (rMount - act2MountEngine(2));
+    Z7 = hMount - t * (hMount - act2MountEngine(3));
 
     %Line 8: vertical axis
 
-    verticalAxis = [0,0,-200];
+    verticalAxis = [0,0,-lPivot];
     verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaA,[0,0,0],axisA);
     verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaB,[0,0,0],axisB);
 
@@ -98,7 +114,7 @@ for n = 1:101
     Y8 = 0 - t * (0 - verticalAxis(2));
     Z8 = 0 - t * (0 - verticalAxis(3));
 
-    for i = 1:101
+    for i = 1:101   % rotate each individual point of the circles twice
         %first rotation by thetaA around axisA
         outpoint1 = rotate([X3(i),Y3(i),Z3(i)],thetaA,[0,0,0],axisA);
         X3(i) = outpoint1(1);
@@ -127,14 +143,18 @@ for n = 1:101
     
     %Plots
   
-    line1 = plot3(X1,Y1,Z1,'--','Color','b');
+    %line1 = plot3(X1,Y1,Z1,'--','Color','b');
+    line3 = plot3(X3,Y3,Z3);
+    hold on
     axis equal
     set(gca, 'Projection','perspective')
-    xlim([-200,200]);
-    ylim([-200,200]);
-    zlim([-500,200]);
-    hold on
-    line2 = plot3(X2,Y2,Z2,'--');
+    xlim([-1.2*rMount,1.2*rMount]);
+    ylim([-1.2*rMount,1.2*rMount]);
+    zlim([-1.2*lPivot,abs(1.2*hMount)]);
+    
+    p = plot3(0,0,0);
+    p.Marker = "x";
+    %line2 = plot3(X2,Y2,Z2,'--');
     line3 = plot3(X3,Y3,Z3);
     line4 = plot3(X4,Y4,Z4);
     %line5 = plot3(X5,Y5,Z5);
@@ -150,17 +170,16 @@ for n = 1:101
 
     m = m + 1;
 
-    if n<50
-        thetaA = 0.4*sin(0.04*n*pi);
-    else 
-        thetaB = 0.4*sin(0.04*n*pi);
-    end
+
 
     actALen = distance([200,0,55],act1MountEngine);
     actBLen = distance([0,200,55],act2MountEngine);
+
+    actALens = [actALens, actALen];
+    actBLens = [actBLens, actBLen];
         
-    thetaA
-    thetaB
+    angleA = thetaA*180/pi
+    angleB = thetaB*180/pi
 
 
     mov(m) = getframe();
@@ -168,6 +187,8 @@ for n = 1:101
 end
 
 
+actALenLimits = [min(actALens),max(actALens)]
+actBLenLimits = [min(actBLens),max(actBLens)]
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
