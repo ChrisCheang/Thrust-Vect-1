@@ -19,7 +19,8 @@ thetaB = 0;
 % Dimensions for the engine
 
 rEngine = 76  % radius of the actuator engine mounts
-lPivot = 270  % axial (z) distance between the pivot point and the engine actuator mount points
+hEngine = 270 % axial (z) distance between the pivot point and the engine bottom
+lPivot = 100  % axial (z) distance between the pivot point and the engine actuator mount points
 hMount = 10 % axial (z) distance between the pivot point and the stationary actuator mount points
 rMount = 120 % radius of the stationary actuator mounts
 aMax = 10*pi/180 % maximum gimbal angle in radians
@@ -30,7 +31,7 @@ axisA = [1,0,0];
 % Lists for parametric (choose)
 
 t = linspace(0,1,11);
-t2 = linspace(0,2*pi,101);
+t2 = linspace(0,2*pi,31);
 
 % Line 1 = axisA, line 2 = axis B (rotated)
 
@@ -53,11 +54,11 @@ actALens= [];
 actBLens = [];
 
 
-for n = 0:100
+for n = 0:64
     
 
-    thetaA = aMax*cos(0.04*n*pi);
-    thetaB = aMax*sin(0.04*n*pi);
+    thetaA = aMax*cos(2*pi*n/64);
+    thetaB = aMax*sin(2*pi*n/64);
 
 
     axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
@@ -66,7 +67,7 @@ for n = 0:100
     Y2 = 200*(2*t - 1)*axisB(2);
     Z2 = 200*(2*t - 1)*axisB(3);
     
-    %Line 3,4 : Circle representation
+    %Line 3,4,5 : Circle representation
     
     %original position of circle with no rotation
     
@@ -76,13 +77,11 @@ for n = 0:100
     
     X4 = rEngine * cos(t2);
     Y4 = rEngine * sin(t2);
-    Z4 = 0 * t2 - lPivot;
+    Z4 = 0 * t2 - hEngine;
 
-    %Line 5: axis B without rotation
-
-    X5 = 200*t*axisBP(1);
-    Y5 = 200*t*axisBP(2);
-    Z5 = 200*t*axisBP(3);
+    X5 = rEngine * cos(t2);
+    Y5 = rEngine * sin(t2);
+    Z5 = 0 * t2 - lPivot;
 
     %Line 6: actuator 1 
 
@@ -114,7 +113,7 @@ for n = 0:100
     Y8 = 0 - t * (0 - verticalAxis(2));
     Z8 = 0 - t * (0 - verticalAxis(3));
 
-    for i = 1:101   % rotate each individual point of the circles twice
+    for i = 1:31   % rotate each individual point of the circles twice
         %first rotation by thetaA around axisA
         outpoint1 = rotate([X3(i),Y3(i),Z3(i)],thetaA,[0,0,0],axisA);
         X3(i) = outpoint1(1);
@@ -139,6 +138,18 @@ for n = 0:100
         Y4(i) = outpoint2(2);
         Z4(i) = outpoint2(3);
 
+        %first rotation by thetaA around axisA
+        outpoint1 = rotate([X5(i),Y5(i),Z5(i)],thetaA,[0,0,0],axisA);
+        X5(i) = outpoint1(1);
+        Y5(i) = outpoint1(2);
+        Z5(i) = outpoint1(3);
+    
+        %second rotation by thetaB around axisB
+        outpoint2 = rotate([X5(i),Y5(i),Z5(i)],thetaB,[0,0,0],axisB);
+        X5(i) = outpoint2(1);
+        Y5(i) = outpoint2(2);
+        Z5(i) = outpoint2(3);
+
     end
     
     %Plots
@@ -150,14 +161,14 @@ for n = 0:100
     set(gca, 'Projection','perspective')
     xlim([-1.2*rMount,1.2*rMount]);
     ylim([-1.2*rMount,1.2*rMount]);
-    zlim([-1.2*lPivot,abs(1.2*hMount)]);
+    zlim([-1.2*hEngine,abs(1.2*hMount)]);
     
     p = plot3(0,0,0);
     p.Marker = "x";
     %line2 = plot3(X2,Y2,Z2,'--');
     line3 = plot3(X3,Y3,Z3);
     line4 = plot3(X4,Y4,Z4);
-    %line5 = plot3(X5,Y5,Z5);
+    line5 = plot3(X5,Y5,Z5);
     line6 = plot3(X6,Y6,Z6);
     line7 = plot3(X7,Y7,Z7);
     line8 = plot3(X8,Y8,Z8,'--');
