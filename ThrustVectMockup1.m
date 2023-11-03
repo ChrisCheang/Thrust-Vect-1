@@ -19,10 +19,11 @@ thetaB = 0;
 % Dimensions for the engine
 
 rEngine = 76  % radius of the actuator engine mounts
-hEngine = 270 % axial (z) distance between the pivot point and the engine bottom
-lPivot = 100  % axial (z) distance between the pivot point and the engine actuator mount points
-hMount = 10 % axial (z) distance between the pivot point and the stationary actuator mount points
-rMount = 120 % radius of the stationary actuator mounts
+hEngine = 270 % axial (z) distance downwards between the pivot point and the engine bottom
+hTopRing = 45 % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+lPivot = 270  % axial (z) distance between the pivot point and the engine actuator mount points
+hMount = 50 % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+rMount = 150 % radius of the stationary actuator mounts
 aMax = 10*pi/180 % maximum gimbal angle in radians
 
 % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
@@ -50,15 +51,18 @@ mov(m) = getframe();
 figure(1);
 
 
-actALens= [];
+actALens = [];
 actBLens = [];
 
+actAClearances = [];
+actBClearances = [];
 
-for n = 0:64
+
+for n = 0:128
     
 
-    thetaA = aMax*cos(2*pi*n/64);
-    thetaB = aMax*sin(2*pi*n/64);
+    thetaA = aMax*cos(2*pi*n/64+0*pi);
+    thetaB = aMax*sin(2*pi*n/64+0*pi);
 
 
     axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
@@ -73,7 +77,7 @@ for n = 0:64
     
     X3 = rEngine * cos(t2);
     Y3 = rEngine * sin(t2);
-    Z3 = 0 * t2 - 55;
+    Z3 = 0 * t2 - hTopRing;
     
     X4 = rEngine * cos(t2);
     Y4 = rEngine * sin(t2);
@@ -85,7 +89,7 @@ for n = 0:64
 
     %Line 6: actuator 1 
 
-    act1MountEngine = [rEngine*cos(0),rEngine*sin(0),-lPivot];
+    act1MountEngine = [rEngine,0,-lPivot];
     act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaA,[0,0,0],axisA);
     act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaB,[0,0,0],axisB);
 
@@ -95,7 +99,7 @@ for n = 0:64
 
     %Line 7: actuator 2 
 
-    act2MountEngine = [rEngine*cos(pi/2),rEngine*sin(pi/2),-lPivot];
+    act2MountEngine = [0,rEngine,-lPivot];
     act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaA,[0,0,0],axisA);
     act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaB,[0,0,0],axisB);
 
@@ -105,13 +109,30 @@ for n = 0:64
 
     %Line 8: vertical axis
 
-    verticalAxis = [0,0,-lPivot];
+    verticalAxis = [0,0,-hEngine];
     verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaA,[0,0,0],axisA);
     verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaB,[0,0,0],axisB);
 
     X8 = 0 - t * (0 - verticalAxis(1));
     Y8 = 0 - t * (0 - verticalAxis(2));
     Z8 = 0 - t * (0 - verticalAxis(3));
+
+    %calculating actuator clearance:
+
+    %pc1 and pc2 = approximations of closest point between actuator A, B 
+    % respectively and the top ring. This is acceptable, as the closest 
+    % distance between an actuator and the top ring occurs when the other 
+    % actuation angle is 0 (assuming the actuator stationary point is mounted
+    % above the top ring , where the approximation is the actual closest point
+
+    pc1 = [rEngine,0,-hTopRing];
+    pc1 = rotate([pc1(1),pc1(2),pc1(3)],thetaA,[0,0,0],axisA);
+    pc1 = rotate([pc1(1),pc1(2),pc1(3)],thetaB,[0,0,0],axisB);
+
+    pc2 = [0,rEngine,-hTopRing];
+    pc2 = rotate([pc2(1),pc2(2),pc2(3)],thetaA,[0,0,0],axisA);
+    pc2 = rotate([pc2(1),pc2(2),pc2(3)],thetaB,[0,0,0],axisB);
+
 
     for i = 1:31   % rotate each individual point of the circles twice
         %first rotation by thetaA around axisA
@@ -159,12 +180,17 @@ for n = 0:64
     hold on
     axis equal
     set(gca, 'Projection','perspective')
-    xlim([-1.2*rMount,1.2*rMount]);
-    ylim([-1.2*rMount,1.2*rMount]);
+    xlim([-max([1.8*rEngine,1.2*rMount]),max([1.8*rEngine,1.2*rMount])]);
+    ylim([-max([1.8*rEngine,1.2*rMount]),max([1.8*rEngine,1.2*rMount])]);
     zlim([-1.2*hEngine,abs(1.2*hMount)]);
+    view(-50,30);
     
-    p = plot3(0,0,0);
-    p.Marker = "x";
+    origin = plot3(0,0,0);
+    origin.Marker = "o";
+    p1 = plot3(pc1(1),pc1(2),pc1(3));
+    p1.Marker = "x";
+    p2 = plot3(pc2(1),pc2(2),pc2(3));
+    p2.Marker = "+";
     %line2 = plot3(X2,Y2,Z2,'--');
     line3 = plot3(X3,Y3,Z3);
     line4 = plot3(X4,Y4,Z4);
@@ -173,6 +199,7 @@ for n = 0:64
     line7 = plot3(X7,Y7,Z7);
     line8 = plot3(X8,Y8,Z8,'--');
     drawnow;
+    
     
     hold off
 
@@ -186,8 +213,14 @@ for n = 0:64
     actALen = distance([200,0,55],act1MountEngine);
     actBLen = distance([0,200,55],act2MountEngine);
 
+    actAClearnace = pointLineDist(pc1,[rMount,0,hMount],act1MountEngine);
+    actBClearnace = pointLineDist(pc2,[0,rMount,hMount],act2MountEngine);
+
     actALens = [actALens, actALen];
     actBLens = [actBLens, actBLen];
+
+    actAClearances = [actAClearances, actAClearnace];
+    actBClearances = [actBClearances, actBClearnace];
         
     angleA = thetaA*180/pi
     angleB = thetaB*180/pi
@@ -200,6 +233,9 @@ end
 
 actALenLimits = [min(actALens),max(actALens)]
 actBLenLimits = [min(actBLens),max(actBLens)]
+
+actAClearanceMin = min(actAClearances)
+actBClearanceMin = min(actBClearances)
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
@@ -229,9 +265,15 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
     %Add the pointCentre back
     pointOut = [xout,yout,zout] + pointCentre;
 end
+% Note: the pointCentre bit doesn't work yet
 
 function dist = distance(pointA,pointB)
     dist = sqrt((pointA(1)-pointB(1))^2 + (pointA(2)-pointB(2))^2 + (pointA(3)-pointB(3))^2);
 end
-% Note: the pointCentre bit doesn't work yet
 
+
+function dist = pointLineDist(pt, v1, v2)  %taken from https://uk.mathworks.com/matlabcentral/answers/95608-is-there-a-function-in-matlab-that-calculates-the-shortest-distance-from-a-point-to-a-line
+    a = v1 - v2;%[v1(1)-v2(1),v1(2)-v2(2),v1(3)-v2(3)];
+    b = pt - v2;%[pt(1)-v2(1),pt(2)-v2(2),pt(3)-v2(3)];
+    dist = norm(cross(a,b)) / norm(a);
+end
