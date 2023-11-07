@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import time
 from mpmath import sec
 import matplotlib.pyplot as plot
 
@@ -62,12 +63,12 @@ class Engine2DWithGimbal:
                  omega,
                  alpha,
                  m=4.12,
-                 d_pivot=0.225+0.0625,
+                 h_topring=-0.225,
+                 d_pivot=0.225+0.0625, # 62.5 is axial dist between CoG and top ring, 225 is between top ring and pivot,
                  Ig=4.558*10**2,  # from fusion 360
                  mdot=1.5,
                  v_exhaust=2000,
                  r_engine=0.076,
-                 h_topring=-0.225,  # 62.5 is axial dist between CoG and top ring, 225 is between top ring and pivot,
                  h_mount=0.01,
                  r_mount=0.095,
                  ):
@@ -76,12 +77,12 @@ class Engine2DWithGimbal:
         self.omega = omega  # gimbal angular velocity, rad/s
         self.alpha = alpha  # gimbal angular acceleration, rad/s^2
         self.m = m  # engine mass, kg
+        self.h_topring = h_topring  # axial distance between pivot point and actuator engine mounts, m
         self.d_pivot = d_pivot  # distance between CoG and pivot point, m
         self.Ip = Ig + self.m * self.d_pivot**2  # rotational inertia of engine about pivot point, kgm^2
         self.mdot = mdot  # propellant mass flow rate, kg/s
         self.v_ex = v_exhaust  # propellant exhaust velocity, m/s
         self.r_engine = r_engine  # radius of the actuator engine mounts, m
-        self.h_topring = h_topring  # axial distance between pivot point and actuator engine mounts, m
         self.h_mount = h_mount  # axial distance between pivot point and actuator stationary mounts, m
         self.r_mount = r_mount  # radius of the actuator stationary mounts, m
 
@@ -98,14 +99,56 @@ class Engine2DWithGimbal:
         moment_arm = point_line_dist(self.engine_mounting_point(), self.stand_mounting_point(), np.array([0,0]))
         return - self.F * moment_arm
 
+    def v_combustion(self):
+        # velocity of fluid going axially in combustion chamber
+        P = 40 * 100000   # pressure 40 bar
+        R = 0.3  # placeholder
+        T = 3300  # Temperature
+        rho = P/(R*T)
+        Qdot = self.mdot / rho
+        A = np.pi * 0.06**2
+        v = Qdot/A
+        return v
+
+    def deltatheta(self):
+        l_chamber = 0.2
+        return self.v_combustion() * l_chamber * self.omega
+
+    def resistive_moment(self):
+        # damping-like moment from inertia of exhaust (need to ask+research+think about this)
+        F = self.mdot * self.v_ex * math.sin(self.deltatheta())
+        M = F * self.d_pivot
+        return - M
+
+    def update(self, dt):
+        Msum = self.actuator_moment() + self.resistive_moment()
+        self.alpha = Msum / self.Ip
+        self.omega = self.omega + dt * self.alpha
+        self.theta = self.theta + dt * self.omega
+        return Engine2DWithGimbal(F=self.F, theta=self.theta, omega=self.omega, alpha=self.alpha)
 
 
-
+def print_state(engine, t):
+    print(round(t, 2), " s, ",
+          round(engine.theta, 3), " rad, ",
+          round(engine.omega, 3), " rad/s, ",
+          round(engine.alpha, 3), " rad/s^2, ",
+          round(engine.actuator_moment(), 3), " Nm act., ",
+          round(engine.resistive_moment(), 3), " Nm res., "
+          )
 
 
 act1 = Actuator(force=600, vmax=30)
+engine = Engine2DWithGimbal(F=600,theta=0,omega=0,alpha=0)
 
-print(act1.rod_rpm())
+t = 0
+dt = 0.05
+
+while t < 30:
+    engine.update(dt)
+    print_state(engine, t)
+    t += dt
+
 
 
 
