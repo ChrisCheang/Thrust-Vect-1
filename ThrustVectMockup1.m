@@ -16,14 +16,14 @@ thetaB = 0;
 
 % The origin is defined as the common pivot point of both DoF.
 
-% Dimensions for the engine
+% Dimensions for the engine (currently defined not very rigorously)
 
 rEngine = 76  % radius of the actuator engine mounts
-hEngine = 270 % axial (z) distance downwards between the pivot point and the engine bottom
-hTopRing = 45 % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-lPivot = 270  % axial (z) distance between the pivot point and the engine actuator mount points
-hMount = 50 % axial (z) distance upwards between the pivot point and the stationary actuator mount points
-rMount = 150 % radius of the stationary actuator mounts
+hTopRing = 100 % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+hEngine = hTopRing+208 % axial (z) distance downwards between the pivot point and the engine bottom
+lPivot = hTopRing+208 % axial (z) distance downwards between the pivot point and the engine actuator mount points
+hMount = 40 % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+rMount = 120 % radius of the stationary actuator mounts
 aMax = 10*pi/180 % maximum gimbal angle in radians
 
 % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
@@ -58,7 +58,7 @@ actAClearances = [];
 actBClearances = [];
 
 
-for n = 0:128
+for n = 0:64
     
 
     thetaA = aMax*cos(2*pi*n/64+0*pi);
@@ -180,8 +180,8 @@ for n = 0:128
     hold on
     axis equal
     set(gca, 'Projection','perspective')
-    xlim([-max([1.8*rEngine,1.2*rMount]),max([1.8*rEngine,1.2*rMount])]);
-    ylim([-max([1.8*rEngine,1.2*rMount]),max([1.8*rEngine,1.2*rMount])]);
+    xlim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
+    ylim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
     zlim([-1.2*hEngine,abs(1.2*hMount)]);
     view(-50,30);
     
@@ -210,8 +210,8 @@ for n = 0:128
 
 
 
-    actALen = distance([200,0,55],act1MountEngine);
-    actBLen = distance([0,200,55],act2MountEngine);
+    actALen = distance([rMount,0,hMount],act1MountEngine);
+    actBLen = distance([0,rMount,hMount],act2MountEngine);
 
     actAClearnace = pointLineDist(pc1,[rMount,0,hMount],act1MountEngine);
     actBClearnace = pointLineDist(pc2,[0,rMount,hMount],act2MountEngine);
