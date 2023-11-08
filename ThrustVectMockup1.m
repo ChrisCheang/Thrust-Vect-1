@@ -18,13 +18,13 @@ thetaB = 0;
 
 % Dimensions for the engine (currently defined not very rigorously)
 
-rEngine = 76  % radius of the actuator engine mounts
-hTopRing = 100 % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-hEngine = hTopRing+208 % axial (z) distance downwards between the pivot point and the engine bottom
-lPivot = hTopRing+208 % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 40 % axial (z) distance upwards between the pivot point and the stationary actuator mount points
-rMount = 120 % radius of the stationary actuator mounts
-aMax = 10*pi/180 % maximum gimbal angle in radians
+rEngine = 76;  % radius of the actuator engine mounts
+hTopRing = 100; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+hEngine = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine bottom
+lPivot = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+hMount = 40; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+rMount = 120; % radius of the stationary actuator mounts
+aMax = 10*pi/180; % maximum gimbal angle in radians
 
 % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
 axisA = [1,0,0];
@@ -223,12 +223,17 @@ for n = 0:64
     actAClearances = [actAClearances, actAClearnace];
     actBClearances = [actBClearances, actBClearnace];
         
-    angleA = thetaA*180/pi;
-    angleB = thetaB*180/pi;
+    angleA = round(thetaA*180/pi,2);
+    angleB = round(thetaB*180/pi,2);
 
-    anglePolar = cartesian_polar(thetaA, thetaB)*180/pi;
+    anglePolarRad = cartesian_polar(thetaA, thetaB);
+    anglePolar = round(anglePolarRad*180/pi,2);
 
-    disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2))
+    angleCartesianReconvert = polar_cartesian(anglePolarRad(1),anglePolarRad(2))*180/pi;
+
+    disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " ...
+        + anglePolar(2) + ", Reconversion check: thetaA = " + angleCartesianReconvert(1) + ", thetaB = " + angleCartesianReconvert(2))
+
 
     mov(m) = getframe();
 
@@ -252,7 +257,7 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
     q0 = cos(theta/2);
     q1 = vector(1)*sin(theta/2);
     q2 = vector(2)*sin(theta/2);
-    q3 = vector(3)*sin(theta/3);
+    q3 = vector(3)*sin(theta/2);
     q = quaternion(q0,q1,q2,q3);
     qmag = q0^2 + q1^2 + q2^2 + q3^2;
     qInv = quaternion(q0/qmag,-q1/qmag,-q2/qmag,-q3/qmag);
@@ -289,17 +294,22 @@ function [polarAngles] = cartesian_polar(A, B)
 end
 
 function [cartesianAngles] = polar_cartesian(thetaG, thetaR)
-    point = [1,0,0]
-    point = rotate(point,thetaR,[0,0,0],[0,0,1])
-    
-
-    if abs(thetaR) <= pi/2
-        N = [1,0,0]
+    axes = [1,0,0];
+    axes = rotate(axes,thetaR-pi/2,[0,0,0],[0,0,1]); % use this to define the axis of rotation for polar gimbal angle
+    point = [0,0,-1];
+    point = rotate(point,thetaG,[0,0,0],axes);
+   
+    if abs(thetaR) <= pi/2;
+        N = [1,0,0];
     else
-        N = [-1,0,0]
+        N = [1,0,0];
     end
-    thetaB = pi/2 - atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]))
+    thetaB = pi/2 - atan2(norm(cross(point,N)), dot(point,N));
 
+    pointProj = [0,point(2),point(3)];
+    thetaA = atan2(norm(cross(pointProj,[0,0,-1])), dot(pointProj,[0,0,-1]));
+
+    cartesianAngles = [thetaA,thetaB];
 end
 
 function dist = distance(pointA,pointB)
