@@ -10,6 +10,9 @@ clear;
 % 3d plotting in Matlab: https://uk.mathworks.com/help/matlab/ref/plot3.html
 
 % Two degrees of freedom, thetaA and thetaB. A for the top bracket, B for the bracket connected to the engine. 
+% Defining the two DoF this way to restrain the "roll" Dof of the engine
+% around the center axes - important for finding actuator engine mount
+% points and thus their length
 
 thetaA = 0;    % right now these are opposite to the right hand rule
 thetaB = 0;
@@ -23,7 +26,7 @@ hTopRing = 100; % axial (z) distance downwards between the pivot point and the e
 hEngine = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine bottom
 lPivot = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine actuator mount points
 hMount = 40; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
-rMount = 120; % radius of the stationary actuator mounts
+rMount = 120; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 
 % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
@@ -57,12 +60,20 @@ actBLens = [];
 actAClearances = [];
 actBClearances = [];
 
+thetaBs = [];
+thetaBestimates = [];
+
 
 for n = 0:64
     
 
-    thetaA = aMax*cos(2*pi*n/64+0*pi);
-    thetaB = aMax*sin(2*pi*n/64+0*pi);
+    thetaG = n/64*10*pi/180;  %n/64*
+    thetaR = -pi + 2*pi*n/64 + 0.00001;
+
+    cartesian = polar_cartesian(thetaG, thetaR);
+
+    thetaA = cartesian(1);
+    thetaB = cartesian(2);
 
 
     axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
@@ -90,8 +101,7 @@ for n = 0:64
     %Line 6: actuator 1 
 
     act1MountEngine = [rEngine,0,-lPivot];
-    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaA,[0,0,0],axisA);
-    act1MountEngine = rotate([act1MountEngine(1),act1MountEngine(2),act1MountEngine(3)],thetaB,[0,0,0],axisB);
+    act1MountEngine = gimbal_cartesian(act1MountEngine,thetaA,thetaB);
 
     X6 = rMount - t * (rMount - act1MountEngine(1));
     Y6 = 0 - t * (0 - act1MountEngine(2));
@@ -100,8 +110,7 @@ for n = 0:64
     %Line 7: actuator 2 
 
     act2MountEngine = [0,rEngine,-lPivot];
-    act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaA,[0,0,0],axisA);
-    act2MountEngine = rotate([act2MountEngine(1),act2MountEngine(2),act2MountEngine(3)],thetaB,[0,0,0],axisB);
+    act2MountEngine = gimbal_cartesian(act2MountEngine,thetaA,thetaB);
 
     X7 = 0 - t * (0 - act2MountEngine(1));
     Y7 = rMount - t * (rMount - act2MountEngine(2));
@@ -110,8 +119,7 @@ for n = 0:64
     %Line 8: vertical axis
 
     verticalAxis = [0,0,-hEngine];
-    verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaA,[0,0,0],axisA);
-    verticalAxis = rotate([verticalAxis(1),verticalAxis(2),verticalAxis(3)],thetaB,[0,0,0],axisB);
+    verticalAxis = gimbal_cartesian(verticalAxis,thetaA,thetaB);
 
     X8 = 0 - t * (0 - verticalAxis(1));
     Y8 = 0 - t * (0 - verticalAxis(2));
@@ -126,54 +134,32 @@ for n = 0:64
     % above the top ring , where the approximation is the actual closest point
 
     pc1 = [rEngine,0,-hTopRing];
-    pc1 = rotate([pc1(1),pc1(2),pc1(3)],thetaA,[0,0,0],axisA);
-    pc1 = rotate([pc1(1),pc1(2),pc1(3)],thetaB,[0,0,0],axisB);
+    pc1 = gimbal_cartesian(pc1,thetaA,thetaB);
 
     pc2 = [0,rEngine,-hTopRing];
-    pc2 = rotate([pc2(1),pc2(2),pc2(3)],thetaA,[0,0,0],axisA);
-    pc2 = rotate([pc2(1),pc2(2),pc2(3)],thetaB,[0,0,0],axisB);
+    pc2 = gimbal_cartesian(pc2,thetaA,thetaB);
 
 
-    for i = 1:31   % rotate each individual point of the circles twice
-        %first rotation by thetaA around axisA
-        outpoint1 = rotate([X3(i),Y3(i),Z3(i)],thetaA,[0,0,0],axisA);
-        X3(i) = outpoint1(1);
-        Y3(i) = outpoint1(2);
-        Z3(i) = outpoint1(3);
-    
-        %second rotation by thetaB around axisB
-        outpoint2 = rotate([X3(i),Y3(i),Z3(i)],thetaB,[0,0,0],axisB);
-        X3(i) = outpoint2(1);
-        Y3(i) = outpoint2(2);
-        Z3(i) = outpoint2(3);
+    for i = 1:31   % gimbal each individual point of the circles
+        outpoint = gimbal_cartesian([X3(i),Y3(i),Z3(i)],thetaA,thetaB);
+        X3(i) = outpoint(1);
+        Y3(i) = outpoint(2);
+        Z3(i) = outpoint(3);
 
-        %first rotation by thetaA around axisA
-        outpoint1 = rotate([X4(i),Y4(i),Z4(i)],thetaA,[0,0,0],axisA);
-        X4(i) = outpoint1(1);
-        Y4(i) = outpoint1(2);
-        Z4(i) = outpoint1(3);
-    
-        %second rotation by thetaB around axisB
-        outpoint2 = rotate([X4(i),Y4(i),Z4(i)],thetaB,[0,0,0],axisB);
-        X4(i) = outpoint2(1);
-        Y4(i) = outpoint2(2);
-        Z4(i) = outpoint2(3);
+        outpoint = gimbal_cartesian([X4(i),Y4(i),Z4(i)],thetaA,thetaB);
+        X4(i) = outpoint(1);
+        Y4(i) = outpoint(2);
+        Z4(i) = outpoint(3);
 
-        %first rotation by thetaA around axisA
-        outpoint1 = rotate([X5(i),Y5(i),Z5(i)],thetaA,[0,0,0],axisA);
-        X5(i) = outpoint1(1);
-        Y5(i) = outpoint1(2);
-        Z5(i) = outpoint1(3);
-    
-        %second rotation by thetaB around axisB
-        outpoint2 = rotate([X5(i),Y5(i),Z5(i)],thetaB,[0,0,0],axisB);
-        X5(i) = outpoint2(1);
-        Y5(i) = outpoint2(2);
-        Z5(i) = outpoint2(3);
-
+        outpoint = gimbal_cartesian([X5(i),Y5(i),Z5(i)],thetaA,thetaB);
+        X5(i) = outpoint(1);
+        Y5(i) = outpoint(2);
+        Z5(i) = outpoint(3);
     end
     
     %Plots
+
+    
   
     line1 = plot3(X1,Y1,Z1,'--','Color','b');
     
@@ -222,6 +208,8 @@ for n = 0:64
 
     actAClearances = [actAClearances, actAClearnace];
     actBClearances = [actBClearances, actBClearnace];
+
+    
         
     angleA = round(thetaA*180/pi,2);
     angleB = round(thetaB*180/pi,2);
@@ -229,26 +217,59 @@ for n = 0:64
     anglePolarRad = cartesian_polar(thetaA, thetaB);
     anglePolar = round(anglePolarRad*180/pi,2);
 
-    angleCartesianReconvert = polar_cartesian(anglePolarRad(1),anglePolarRad(2))*180/pi;
+    
 
-    disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " ...
-        + anglePolar(2) + ", Reconversion check: thetaA = " + angleCartesianReconvert(1) + ", thetaB = " + angleCartesianReconvert(2))
+    inverseAngles = cartesian_from_actuator_lengths(actALen,actBLen,rEngine,lPivot,rMount,hMount,aMax);
 
 
-    mov(m) = getframe();
+    thetaBs = [thetaBs, thetaB];
+    thetaBestimates = [thetaBestimates, inverseAngles(2)];
+
+
+    disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) ...
+        + ", ActA = " + actALen + ", ActB = " + actBLen + ", inv: thetaA = " + inverseAngles(1)*180/pi + ", thetaB = " + inverseAngles(2)*180/pi)
+
+
+
+    %angleCartesianReconvert = polar_cartesian(anglePolarRad(1),anglePolarRad(2))*180/pi;
+    %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " ...
+        %+ anglePolar(2) + ", Reconversion check: thetaA = " + angleCartesianReconvert(1) + ", thetaB = " + angleCartesianReconvert(2))
+
+
+    %mov(m) = getframe();
+
+    
+
+    %testing inverse kinematics iterative version - find better solution
+    %later!
+    
+    
+
+
+    
 
 end
 
-%limits and clearances should be same for both actuators so just calculate
-%one for actuator A
 
 actALenLimits = [min(actALens),max(actALens)];
 actAClearanceMin = min(actAClearances);
 
-disp("minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2) + ", clearance = " + actAClearanceMin)
+actBLenLimits = [min(actBLens),max(actBLens)];
+actBClearanceMin = min(actBClearances);
+
+disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2) + ", clearance = " + actAClearanceMin)
+disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2) + ", clearance = " + actBClearanceMin)
+
+inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
 
 
+n = linspace(0,64,65);
 
+
+%plot(n,thetaBs)
+%hold on
+%plot(n,thetaBestimates)
+%hold off
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
@@ -267,7 +288,7 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
     pointInTranslated = pointIn - pointCentre;
     
     %define the point to be rotated into a quaternion
-    p = quaternion(0,pointIn(1),pointIn(2),pointIn(3));
+    p = quaternion(0,pointInTranslated(1),pointInTranslated(2),pointInTranslated(3));
 
     %output quaternion pPrime
     pPrime = qInv * p * q;
@@ -280,15 +301,66 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
 end
 % Note: the pointCentre bit doesn't work yet
 
+function [pointOut] = gimbal_cartesian(pointIn,A,B)
+    aA = [1,0,0];  %axis A
+    aB = rotate([0,1,0],A,[0,0,0],aA);  %axis B
+    point = rotate(pointIn,A,[0,0,0],aA);
+    pointOut = rotate(point,B,[0,0,0],aB);
+end
+
+function [lengths] = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount)
+
+    act1MountEngine = [rEngine,0,-lPivot];
+    act1MountEngine = gimbal_cartesian(act1MountEngine,A,B);
+    lengths(1) = distance([rMount,0,hMount],act1MountEngine);
+
+    act2MountEngine = [0,rEngine,-lPivot];
+    act2MountEngine = gimbal_cartesian(act2MountEngine,A,B);
+    lengths(2) = distance([0,rMount,hMount],act2MountEngine);
+end
+
+function [limits] = actuator_limits(rEngine,lPivot,rMount,hMount,aMax)
+    %Consider the limits of actuator B as thetaA goes from -aMax to aMax
+    BFullRetract = actuator_lengths_from_cartesian(-aMax,0,rEngine,lPivot,rMount,hMount);
+    BFullExtend = actuator_lengths_from_cartesian(aMax,0,rEngine,lPivot,rMount,hMount);
+    limits = [BFullRetract(2), BFullExtend(2)];
+end
+
+function length = actuator_neutral(rEngine,lPivot,rMount,hMount)
+    lengths = actuator_lengths_from_cartesian(0,0,rEngine,lPivot,rMount,hMount);
+    length = lengths(1);
+end
+
+function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+    %Uses and iterative method, based on a linear actuator length - gimbal
+    %angle assumption for first guess
+    limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax);
+    min = limits(1);
+    max = limits(2);
+    actRange = max - min;
+    gradient = actRange/(2*aMax);
+
+    %first estimate using linear interpolation
+    thetaA = 2*aMax*(actB-min)/actRange - aMax;
+    thetaB = - (2*aMax*(actA-min)/actRange - aMax);  % for some reason I don't know about yet thetaB needs to be flipped
+
+    for i = 1:10
+        Re = actuator_lengths_from_cartesian(thetaA,thetaB,rEngine,lPivot,rMount,hMount); %actuator lengths calculated from estimated angles
+        difA = Re(1) - actA;   % difference in calculated and actual actuator lengths
+        difB = Re(2) - actB;
+        
+        thetaA = thetaA + 0.01*thetaA*difB;
+        thetaB = thetaB + 0.01*thetaB*difA;
+    end
+
+
+    angles = [thetaA,thetaB];
+end
 
 function [polarAngles] = cartesian_polar(A, B)
     % Gimbal angle (polarAngles(1)) range = 0 < theta < pi/2, Roll angle
     % (polarAngles(2)) range = -pi < 0 < pi, 0 is x-axis
-    aA = [1,0,0];
-    aB = rotate([0,1,0],A,[0,0,0],aA);
-    point = [0,0,-1];
-    point = rotate(point,A,[0,0,0],aA);
-    point = rotate(point,B,[0,0,0],aB);
+    point = gimbal_cartesian([0,0,-1],A,B);
     polarAngles(1) = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
     polarAngles(2) = atan2(point(2),point(1));
 end
@@ -299,15 +371,12 @@ function [cartesianAngles] = polar_cartesian(thetaG, thetaR)
     point = [0,0,-1];
     point = rotate(point,thetaG,[0,0,0],axes);
    
-    if abs(thetaR) <= pi/2;
-        N = [1,0,0];
-    else
-        N = [1,0,0];
-    end
+    N = [1,0,0];
     thetaB = pi/2 - atan2(norm(cross(point,N)), dot(point,N));
 
     pointProj = [0,point(2),point(3)];
-    thetaA = atan2(norm(cross(pointProj,[0,0,-1])), dot(pointProj,[0,0,-1]));
+    sign = - abs(thetaR)/thetaR;
+    thetaA = sign * atan2(norm(cross(pointProj,[0,0,-1])), dot(pointProj,[0,0,-1]));
 
     cartesianAngles = [thetaA,thetaB];
 end
@@ -315,7 +384,6 @@ end
 function dist = distance(pointA,pointB)
     dist = sqrt((pointA(1)-pointB(1))^2 + (pointA(2)-pointB(2))^2 + (pointA(3)-pointB(3))^2);
 end
-
 
 function dist = pointLineDist(pt, v1, v2)  %taken from https://uk.mathworks.com/matlabcentral/answers/95608-is-there-a-function-in-matlab-that-calculates-the-shortest-distance-from-a-point-to-a-line
     a = v1 - v2;%[v1(1)-v2(1),v1(2)-v2(2),v1(3)-v2(3)];
