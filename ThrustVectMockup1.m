@@ -175,8 +175,8 @@ for n = 0:64
     
     %Plots
   
-    %line1 = plot3(X1,Y1,Z1,'--','Color','b');
-    line3 = plot3(X3,Y3,Z3);
+    line1 = plot3(X1,Y1,Z1,'--','Color','b');
+    
     hold on
     axis equal
     set(gca, 'Projection','perspective')
@@ -191,7 +191,8 @@ for n = 0:64
     p1.Marker = "x";
     p2 = plot3(pc2(1),pc2(2),pc2(3));
     p2.Marker = "+";
-    %line2 = plot3(X2,Y2,Z2,'--');
+    line2 = plot3(X2,Y2,Z2,'--');
+    line3 = plot3(X3,Y3,Z3);
     line3 = plot3(X3,Y3,Z3);
     line4 = plot3(X4,Y4,Z4);
     line5 = plot3(X5,Y5,Z5);
@@ -222,9 +223,12 @@ for n = 0:64
     actAClearances = [actAClearances, actAClearnace];
     actBClearances = [actBClearances, actBClearnace];
         
-    angleA = thetaA*180/pi
-    angleB = thetaB*180/pi
+    angleA = thetaA*180/pi;
+    angleB = thetaB*180/pi;
 
+    anglePolar = cartesian_polar(thetaA, thetaB)*180/pi;
+
+    disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2))
 
     mov(m) = getframe();
 
@@ -266,6 +270,20 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
     pointOut = [xout,yout,zout] + pointCentre;
 end
 % Note: the pointCentre bit doesn't work yet
+
+function [polarAngles] = cartesian_polar(A, B)
+    aA = [1,0,0];
+    aB = rotate([0,1,0],A,[0,0,0],aA);
+    point = [0,0,-1];
+    point = rotate(point,A,[0,0,0],aA);
+    point = rotate(point,B,[0,0,0],aB);
+    polarAngles(1) = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
+    polarAngles(2) = atan2(point(2),point(1));
+end
+
+function [cartesianAngles] = polar_cartesian(thetaG, thetaR)
+    
+end
 
 function dist = distance(pointA,pointB)
     dist = sqrt((pointA(1)-pointB(1))^2 + (pointA(2)-pointB(2))^2 + (pointA(3)-pointB(3))^2);
