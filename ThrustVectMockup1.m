@@ -11,7 +11,7 @@ clear;
 
 % Two degrees of freedom, thetaA and thetaB. A for the top bracket, B for the bracket connected to the engine. 
 
-thetaA = 0;
+thetaA = 0;    % right now these are opposite to the right hand rule
 thetaB = 0;
 
 % The origin is defined as the common pivot point of both DoF.
@@ -234,12 +234,16 @@ for n = 0:64
 
 end
 
+%limits and clearances should be same for both actuators so just calculate
+%one for actuator A
 
-actALenLimits = [min(actALens),max(actALens)]
-actBLenLimits = [min(actBLens),max(actBLens)]
+actALenLimits = [min(actALens),max(actALens)];
+actAClearanceMin = min(actAClearances);
 
-actAClearanceMin = min(actAClearances)
-actBClearanceMin = min(actBClearances)
+disp("minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2) + ", clearance = " + actAClearanceMin)
+
+
+
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
@@ -271,7 +275,10 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
 end
 % Note: the pointCentre bit doesn't work yet
 
+
 function [polarAngles] = cartesian_polar(A, B)
+    % Gimbal angle (polarAngles(1)) range = 0 < theta < pi/2, Roll angle
+    % (polarAngles(2)) range = -pi < 0 < pi, 0 is x-axis
     aA = [1,0,0];
     aB = rotate([0,1,0],A,[0,0,0],aA);
     point = [0,0,-1];
@@ -282,7 +289,17 @@ function [polarAngles] = cartesian_polar(A, B)
 end
 
 function [cartesianAngles] = polar_cartesian(thetaG, thetaR)
+    point = [1,0,0]
+    point = rotate(point,thetaR,[0,0,0],[0,0,1])
     
+
+    if abs(thetaR) <= pi/2
+        N = [1,0,0]
+    else
+        N = [-1,0,0]
+    end
+    thetaB = pi/2 - atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]))
+
 end
 
 function dist = distance(pointA,pointB)
