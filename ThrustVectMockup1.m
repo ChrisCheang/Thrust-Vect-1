@@ -60,14 +60,14 @@ actBLens = [];
 actAClearances = [];
 actBClearances = [];
 
-thetaBs = [];
-thetaBestimates = [];
+thetaAs = [];
+thetaAestimates = [];
 
 
 for n = 0:64
     
 
-    thetaG = n/64*10*pi/180;  %n/64*
+    thetaG = 10*pi/180;  %n/64*
     thetaR = -pi + 2*pi*n/64 + 0.00001;
 
     cartesian = polar_cartesian(thetaG, thetaR);
@@ -222,8 +222,8 @@ for n = 0:64
     inverseAngles = cartesian_from_actuator_lengths(actALen,actBLen,rEngine,lPivot,rMount,hMount,aMax);
 
 
-    thetaBs = [thetaBs, thetaB];
-    thetaBestimates = [thetaBestimates, inverseAngles(2)];
+    thetaAs = [thetaAs, thetaA];
+    thetaAestimates = [thetaAestimates, inverseAngles(1)];
 
 
     disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) ...
@@ -266,10 +266,10 @@ inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMoun
 n = linspace(0,64,65);
 
 
-%plot(n,thetaBs)
-%hold on
-%plot(n,thetaBestimates)
-%hold off
+plot(n,thetaAs)
+hold on
+plot(n,thetaAestimates)
+hold off
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
@@ -349,8 +349,10 @@ function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMo
         difA = Re(1) - actA;   % difference in calculated and actual actuator lengths
         difB = Re(2) - actB;
         
-        thetaA = thetaA + 0.01*thetaA*difB;
-        thetaB = thetaB + 0.01*thetaB*difA;
+        Polar = cartesian_polar(thetaA,thetaB);
+        thetaG = Polar(1);
+        thetaA = thetaA + thetaG*0.1*thetaA*difB;
+        thetaB = thetaB + thetaG*0.1*thetaB*difA;
     end
 
 
