@@ -63,15 +63,15 @@ actBClearances = [];
 thetaAs = [];
 thetaAestimates = [];
 
-nsteps = 128
+nsteps = 64;
 
 for n = 0:nsteps
     
 
-    thetaG = n/nsteps*10*pi/180;  %n/nsteps*
+    thetaG = 10*pi/180;  %n/nsteps*
     thetaR = -pi + 2*pi*n/nsteps + 0.00001;
 
-    cartesian = polar_cartesian(thetaG, thetaR);
+    cartesian = polar_to_cartesian(thetaG, thetaR);
 
     thetaA = cartesian(1);
     thetaB = cartesian(2);
@@ -215,12 +215,12 @@ for n = 0:nsteps
     angleA = round(thetaA*180/pi,2);
     angleB = round(thetaB*180/pi,2);
 
-    anglePolarRad = cartesian_polar(thetaA, thetaB);
+    anglePolarRad = cartesian_to_polar(thetaA, thetaB);
     anglePolar = round(anglePolarRad*180/pi,2);
 
     
 
-    inverseAngles = cartesian_from_actuator_lengths(actALen,actBLen,rEngine,lPivot,rMount,hMount,aMax);
+    inverseAngles = cartesian_from_actuator_lengths_iterative(actALen,actBLen,rEngine,lPivot,rMount,hMount,aMax);
 
 
     thetaAs = [thetaAs, thetaB];
@@ -261,16 +261,16 @@ actBClearanceMin = min(actBClearances);
 disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2) + ", clearance = " + actAClearanceMin)
 disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2) + ", clearance = " + actBClearanceMin)
 
-inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
+inverseAngles = cartesian_from_actuator_lengths_iterative(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
 
 
 n = linspace(0,nsteps,nsteps+1);
 
 
-plot(n,thetaAs)
-hold on
-plot(n,thetaAestimates)
-hold off
+%plot(n,thetaAs)
+%hold on
+%plot(n,thetaAestimates)
+%hold off
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
@@ -332,7 +332,8 @@ function length = actuator_neutral(rEngine,lPivot,rMount,hMount)
     length = lengths(1);
 end
 
-function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+function [angles] = cartesian_from_actuator_lengths_iterative(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+
     %Uses and iterative method, based on a linear actuator length - gimbal
     %angle assumption for first guess
     limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax);
@@ -364,7 +365,7 @@ function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMo
         difA = Re(1) - actA;   % difference in calculated and actual actuator lengths
         difB = Re(2) - actB;
         
-        Polar = cartesian_polar(thetaA,thetaB);
+        Polar = cartesian_to_polar(thetaA,thetaB);
         thetaG = Polar(1);
         thetaA = thetaA - thetaG*0.02*thetaA*difB;
         thetaB = thetaB - thetaG*0.02*thetaB*difA;
@@ -374,7 +375,16 @@ function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMo
     angles = [thetaA,thetaB];
 end
 
-function [polarAngles] = cartesian_polar(A, B)
+function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+    type root2d.m;
+    function F = root2d(x);  %x1,x2,x3 = nx,ny,nz, x4 = thetaA, x5 = thetaB
+        me1 = [n(1)*lPivot-rEngine*(n(3)*cos(theta))];
+    end
+    fun = @root2d;
+    x0 = [0,0,0];
+end
+
+function [polarAngles] = cartesian_to_polar(A, B)
     % Gimbal angle (polarAngles(1)) range = 0 < theta < pi/2, Roll angle
     % (polarAngles(2)) range = -pi < 0 < pi, 0 is x-axis
     point = gimbal_cartesian([0,0,-1],A,B);
@@ -382,7 +392,13 @@ function [polarAngles] = cartesian_polar(A, B)
     polarAngles(2) = atan2(point(2),point(1));
 end
 
-function [cartesianAngles] = polar_cartesian(thetaG, thetaR)
+function [cartesianAngles] = unit_point_to_cartesian(point)
+    thetaG = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
+    thetaR = atan2(point(2),point(1));
+    cartesianAngles = polar_to_cartesian(thetaG, thetaR);
+end
+
+function [cartesianAngles] = polar_to_cartesian(thetaG, thetaR)
     axes = [1,0,0];
     axes = rotate(axes,thetaR-pi/2,[0,0,0],[0,0,1]); % use this to define the axis of rotation for polar gimbal angle
     point = [0,0,-1];
