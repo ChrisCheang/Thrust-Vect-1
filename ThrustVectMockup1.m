@@ -63,12 +63,13 @@ actBClearances = [];
 thetaAs = [];
 thetaAestimates = [];
 
+nsteps = 128
 
-for n = 0:64
+for n = 0:nsteps
     
 
-    thetaG = 10*pi/180;  %n/64*
-    thetaR = -pi + 2*pi*n/64 + 0.00001;
+    thetaG = n/nsteps*10*pi/180;  %n/nsteps*
+    thetaR = -pi + 2*pi*n/nsteps + 0.00001;
 
     cartesian = polar_cartesian(thetaG, thetaR);
 
@@ -222,8 +223,8 @@ for n = 0:64
     inverseAngles = cartesian_from_actuator_lengths(actALen,actBLen,rEngine,lPivot,rMount,hMount,aMax);
 
 
-    thetaAs = [thetaAs, thetaA];
-    thetaAestimates = [thetaAestimates, inverseAngles(1)];
+    thetaAs = [thetaAs, thetaB];
+    thetaAestimates = [thetaAestimates, inverseAngles(2)];
 
 
     disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) ...
@@ -263,7 +264,7 @@ disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(
 inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
 
 
-n = linspace(0,64,65);
+n = linspace(0,nsteps,nsteps+1);
 
 
 plot(n,thetaAs)
@@ -340,10 +341,24 @@ function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMo
     actRange = max - min;
     gradient = actRange/(2*aMax);
 
-    %first estimate using linear interpolation
-    thetaA = 2*aMax*(actB-min)/actRange - aMax;
-    thetaB = - (2*aMax*(actA-min)/actRange - aMax);  % for some reason I don't know about yet thetaB needs to be flipped
+    %first estimate using a linear approximation
 
+    %
+    %try quadratic with 0.5 centre max offset (increase of actLen)?
+    
+
+    pA = [3/aMax,-actRange/(2*aMax),-actRange/2-min+actB-0.6];
+    pB = [3/aMax,-actRange/(2*aMax),-actRange/2-min+actA-0.6];
+
+    thetaAguess = roots(pA);
+    thetaBguess = roots(pB);
+
+    %
+
+    thetaA = thetaAguess(2);%2*aMax*(actB-min)/actRange - aMax;
+    thetaB = - thetaBguess(2);%- (2*aMax*(actA-min)/actRange - aMax);  % for some reason I don't know about yet thetaB needs to be flipped
+
+    %
     for i = 1:10
         Re = actuator_lengths_from_cartesian(thetaA,thetaB,rEngine,lPivot,rMount,hMount); %actuator lengths calculated from estimated angles
         difA = Re(1) - actA;   % difference in calculated and actual actuator lengths
@@ -351,10 +366,10 @@ function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMo
         
         Polar = cartesian_polar(thetaA,thetaB);
         thetaG = Polar(1);
-        thetaA = thetaA + thetaG*0.1*thetaA*difB;
-        thetaB = thetaB + thetaG*0.1*thetaB*difA;
+        thetaA = thetaA - thetaG*0.02*thetaA*difB;
+        thetaB = thetaB - thetaG*0.02*thetaB*difA;
     end
-
+    %
 
     angles = [thetaA,thetaB];
 end
