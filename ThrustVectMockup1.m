@@ -2,6 +2,13 @@ clc,clearvars
 close all;
 clear;
 
+%oldpath = path;
+%path('C:\Users\Chris Cheang\MATLAB\Projects\Thrust Vect Mockup 1', oldpath)
+
+%Functions = KinematicsFunctions;
+
+
+
 % Resources
 
 % Quaternion rotation: https://danceswithcode.net/engineeringnotes/quaternions/quaternions.html
@@ -61,7 +68,7 @@ actAClearances = [];
 actBClearances = [];
 
 thetaAs = [];
-thetaAinverse = [];
+thetaAinverses = [];
 
 nsteps = 64;
 
@@ -224,11 +231,20 @@ for n = 0:nsteps
 
 
     thetaAs = [thetaAs, thetaA];
-    thetaAinverse = [thetaAinverse, inverseAngles(1)];
+    thetaAinverses = [thetaAinverses, inverseAngles(1)];
 
+    
+    % Testing inverse kinematics
+    %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) ...
+        %+ ", ActA = " + actALen + ", ActB = " + actBLen + ", inv: thetaA = " + inverseAngles(1)*180/pi + ", thetaB = " + inverseAngles(2)*180/pi)
+
+    % With motor rotation function
+    neutralLength = actuator_neutral(rEngine,lPivot,rMount,hMount);
+    actARot = MotorActuatorRevolution(neutralLength,actALen);
+    actBRot = MotorActuatorRevolution(neutralLength,actBLen);
 
     disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) ...
-        + ", ActA = " + actALen + ", ActB = " + actBLen + ", inv: thetaA = " + inverseAngles(1)*180/pi + ", thetaB = " + inverseAngles(2)*180/pi)
+        + ", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
 
 
 
@@ -261,7 +277,7 @@ actBClearanceMin = min(actBClearances);
 disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2) + ", clearance = " + actAClearanceMin)
 disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2) + ", clearance = " + actBClearanceMin)
 
-inverseAngles = cartesian_from_actuator_lengths_estimate(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
+inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
 
 
 n = linspace(0,nsteps,nsteps+1);
@@ -269,8 +285,9 @@ n = linspace(0,nsteps,nsteps+1);
 
 %plot(n,thetaAs)
 %hold on
-%plot(n,thetaAinverse)
+%plot(n,thetaAinverses)
 %hold off
+
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
@@ -302,13 +319,16 @@ function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zou
 end
 % Note: the pointCentre bit doesn't work yet
 
+%
 function [pointOut] = gimbal_cartesian(pointIn,A,B)
     aA = [1,0,0];  %axis A
     aB = rotate([0,1,0],A,[0,0,0],aA);  %axis B
     point = rotate(pointIn,A,[0,0,0],aA);
     pointOut = rotate(point,B,[0,0,0],aB);
 end
+%
 
+%
 function [lengths] = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount)
 
     act1MountEngine = [rEngine,0,-lPivot];
@@ -319,46 +339,48 @@ function [lengths] = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,h
     act2MountEngine = gimbal_cartesian(act2MountEngine,A,B);
     lengths(2) = distance([0,rMount,hMount],act2MountEngine);
 end
+%
 
+%
 function [limits] = actuator_limits(rEngine,lPivot,rMount,hMount,aMax)
     %Consider the limits of actuator B as thetaA goes from -aMax to aMax
     BFullRetract = actuator_lengths_from_cartesian(-aMax,0,rEngine,lPivot,rMount,hMount);
     BFullExtend = actuator_lengths_from_cartesian(aMax,0,rEngine,lPivot,rMount,hMount);
     limits = [BFullRetract(2), BFullExtend(2)];
 end
+%
 
 function length = actuator_neutral(rEngine,lPivot,rMount,hMount)
     lengths = actuator_lengths_from_cartesian(0,0,rEngine,lPivot,rMount,hMount);
     length = lengths(1);
 end
 
-function [angles] = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
-
-    %Uses and iterative method, based on a linear actuator length - gimbal
-    %angle assumption for first guess
-    limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax);
-    min = limits(1);
-    max = limits(2);
-    actRange = max - min;
-    gradient = actRange/(2*aMax);
-
-    %first estimate using a linear approximation + quadratic offset
-    
-
-    pA = [3/aMax,-actRange/(2*aMax),-actRange/2-min+actB-0.6];
-    pB = [3/aMax,-actRange/(2*aMax),-actRange/2-min+actA-0.6];
-
-    thetaAguess = roots(pA);
-    thetaBguess = roots(pB);
-
-    thetaA = thetaAguess(2);%2*aMax*(actB-min)/actRange - aMax;
-    thetaB = - thetaBguess(2);%- (2*aMax*(actA-min)/actRange - aMax);  % for some reason I don't know about yet thetaB needs to be flipped
-
-    angles = [thetaA,thetaB];
-end
-
+%
 function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
-
+    function [angles] = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+    
+        %Uses and iterative method, based on a linear actuator length - gimbal
+        %angle assumption for first guess
+        limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax);
+        min = limits(1);
+        max = limits(2);
+        actRange = max - min;
+        gradient = actRange/(2*aMax);
+    
+        %first estimate using a linear approximation + quadratic offset
+        
+    
+        pA = [3/aMax,-actRange/(2*aMax),-actRange/2-min+actB-0.6];
+        pB = [3/aMax,-actRange/(2*aMax),-actRange/2-min+actA-0.6];
+    
+        thetaAguess = roots(pA);
+        thetaBguess = roots(pB);
+    
+        thetaA = thetaAguess(2);%2*aMax*(actB-min)/actRange - aMax;
+        thetaB = - thetaBguess(2);%- (2*aMax*(actA-min)/actRange - aMax);  % for some reason I don't know about yet thetaB needs to be flipped
+    
+        angles = [thetaA,thetaB];
+    end
     function F = root2d(x);  %x1 = thetaA, x2 = thetaB
         F = actuator_lengths_from_cartesian(x(1),x(2),rEngine,lPivot,rMount,hMount) - [actA,actB];
     end
@@ -369,6 +391,7 @@ function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMo
     
     angles = x;
 end
+%
 
 function [polarAngles] = cartesian_to_polar(A, B)
     % Gimbal angle (polarAngles(1)) range = 0 < theta < pi/2, Roll angle
@@ -405,7 +428,17 @@ function dist = distance(pointA,pointB)
 end
 
 function dist = pointLineDist(pt, v1, v2)  %taken from https://uk.mathworks.com/matlabcentral/answers/95608-is-there-a-function-in-matlab-that-calculates-the-shortest-distance-from-a-point-to-a-line
+
     a = v1 - v2;%[v1(1)-v2(1),v1(2)-v2(2),v1(3)-v2(3)];
     b = pt - v2;%[pt(1)-v2(1),pt(2)-v2(2),pt(3)-v2(3)];
     dist = norm(cross(a,b)) / norm(a);
+end
+
+function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
+    lead = 5;
+    gearRatio = 5;
+    delta_dis = actuator_dis-neutral_dis;
+    nActuatorRev = delta_dis/lead;
+    nRotation = nActuatorRev*gearRatio;
+
 end
