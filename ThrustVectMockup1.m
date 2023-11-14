@@ -34,7 +34,7 @@ hEngine = hTopRing+208; % axial (z) distance downwards between the pivot point a
 lPivot = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine actuator mount points
 hMount = 40; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
 rMount = 120; % radius of the stationary actuator mounts, r=120
-aMax = 10*pi/180; % maximum gimbal angle in radians
+aMax = 16*pi/180; % maximum gimbal angle in radians
 
 % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
 axisA = [1,0,0];
@@ -75,7 +75,7 @@ nsteps = 64;
 for n = 0:nsteps
     
 
-    thetaG = 10*pi/180;  %n/nsteps*
+    thetaG = aMax;  %n/nsteps*
     thetaR = -pi + 2*pi*n/nsteps + 0.00001;
 
     cartesian = polar_to_cartesian(thetaG, thetaR);
