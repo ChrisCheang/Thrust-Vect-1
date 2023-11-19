@@ -36,7 +36,7 @@ lPivot = hTopRing+208; % axial (z) distance downwards between the pivot point an
 hMount = 60; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
 rMount = 120; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
-
+lead = 4; % lead of ball screw in mm
 
 
 
@@ -57,15 +57,13 @@ thetaAinverses = [];
 
 nsteps = 64;
 
-
-thetaG = 0;
-thetaR = 0;
-
 thetaGt = 0;
 thetaRt = 0;
 
 while true
     
+    % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
+
     mouse = get( 0, 'PointerLocation' );
     x = 2*(mouse(1)/1383-0.5);
     y = 2*(mouse(2)/1383-0.15);
@@ -76,11 +74,19 @@ while true
     end
     thetaRt = atan2(y,x);
 
+    actuatorTargetRevs = actuator_revs_from_polar(thetaGt,thetaRt,rEngine,lPivot,rMount,hMount);
+    actARevt = actuatorTargetRevs(1);
+    actBRevt = actuatorTargetRevs(2);
 
-    % PID test section
+
+    % end of target pos section
+
+    % PID test of total motor rotations
     % for now just say actual = target 
-    thetaG = thetaGt;
-    thetaR = thetaRt;
+    
+    actARev = actARevt;
+    actBRev = actBRevt;
+
 
     % transfer function of actuator, modelled on a mass-damper system
     m = 10;
@@ -89,12 +95,13 @@ while true
     s = tf('s');
     P = 1/(m*s^2 + b*s);
     
+    % end of PID section - now is just converting back to cartesian to draw
 
+    neutralLen = actuator_neutral(rEngine,lPivot,rMount,hMount);
+    actA = neutralLen + actARev*lead;
+    actB = neutralLen + actBRev*lead;
 
-    %
-
-    cartesian = polar_to_cartesian(thetaG, thetaR);
-
+    cartesian = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax);
     thetaA = cartesian(1);
     thetaB = cartesian(2);
     
@@ -473,9 +480,20 @@ end
 
 function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
     lead = 4;
-    gearRatio = 1;
     delta_dis = actuator_dis-neutral_dis;
-    nActuatorRev = delta_dis/lead;
-    nRotation = nActuatorRev*gearRatio;
+    nRotation = delta_dis/lead;
+end
 
+function [nRotations] = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
+    neutral_dis = actuator_neutral(rEngine,lPivot,rMount,hMount);
+    cartesianAngles = polar_to_cartesian(thetaG, thetaR);
+    A = cartesianAngles(1);
+    B = cartesianAngles(2);
+
+    ActLens = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount);
+    ActALen = ActLens(1);
+    ActBLen = ActLens(2);
+
+    nRotations(1) = MotorActuatorRevolution(neutral_dis,ActALen);
+    nRotations(2) = MotorActuatorRevolution(neutral_dis,ActBLen);
 end
