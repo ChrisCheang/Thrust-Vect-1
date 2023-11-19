@@ -15,6 +15,7 @@ clear;
 % Rotation Matrix: https://mathworld.wolfram.com/RotationMatrix.html
 % Quaternions in Matlab: https://uk.mathworks.com/help/robotics/ref/quaternion.html
 % 3d plotting in Matlab: https://uk.mathworks.com/help/matlab/ref/plot3.html
+% PID of mass-damper system in Matlab: https://ctms.engin.umich.edu/CTMS/index.php?example=Introduction&section=ControlPID
 
 % Two degrees of freedom, thetaA and thetaB. A for the top bracket, B for the bracket connected to the engine. 
 % Defining the two DoF this way to restrain the "roll" Dof of the engine
@@ -56,8 +57,12 @@ thetaAinverses = [];
 
 nsteps = 64;
 
-thetaA = 0;
-thetaB = 0;
+
+thetaG = 0;
+thetaR = 0;
+
+thetaGt = 0;
+thetaRt = 0;
 
 while true
     
@@ -66,18 +71,33 @@ while true
     y = 2*(mouse(2)/1383-0.15);
 
 
-    %thetaG = aMax;  %n/nsteps*
-    %thetaR = -pi + 2*pi*n/nsteps + 0.00001;
-
-    %cartesian = polar_to_cartesian(thetaG, thetaR);
-    polar = cartesian_to_polar(-y,x);
-    
-    if polar(1) < aMax;
-        thetaA = -y;%cartesian(1);
-        thetaB = x;%cartesian(2);
+    if sqrt(y^2+x^2) < aMax;
+        thetaGt = sqrt(y^2+x^2);  %n/nsteps*
     end
-     
+    thetaRt = atan2(y,x);
 
+
+    % PID test section
+    % for now just say actual = target 
+    thetaG = thetaGt;
+    thetaR = thetaRt;
+
+    % transfer function of actuator, modelled on a mass-damper system
+    m = 10;
+    b = 2;
+
+    s = tf('s');
+    P = 1/(m*s^2 + b*s);
+    
+
+
+    %
+
+    cartesian = polar_to_cartesian(thetaG, thetaR);
+
+    thetaA = cartesian(1);
+    thetaB = cartesian(2);
+    
     draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing);
 
 
@@ -124,9 +144,10 @@ while true
     actARot = MotorActuatorRevolution(neutralLength,actALen);
     actBRot = MotorActuatorRevolution(neutralLength,actBLen);
 
-    disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) ...
-        + ", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
-
+    %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) + ...
+         %", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
+    
+    disp("ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
 
 
     %angleCartesianReconvert = polar_cartesian(anglePolarRad(1),anglePolarRad(2))*180/pi;
