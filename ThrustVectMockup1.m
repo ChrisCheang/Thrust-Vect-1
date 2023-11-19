@@ -38,7 +38,7 @@ rMount = 120; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 4; % lead of ball screw in mm
 
-
+h = 1; % i.e step size in time in s
 
 m = 1;
 mov(m) = getframe();
@@ -63,8 +63,11 @@ thetaRt = 0;
 actARev = 0;
 actBRev = 0;
 
-eas = [0];  % cumulating the error values for the integral term
-ebs = [0];  
+eas = [0,0,0];  % cumulating the error values for the integral term
+ebs = [0,0,0];  
+
+actARevs = [0,0,0];
+actBRevs = [0,0,0];
 
 while true
     
@@ -93,33 +96,38 @@ while true
     ea = actARevt - actARev;  % error terms of the two actuators
     eb = actBRevt - actBRev;  % target - actual
     
-    eas = [ea, eas];
-    ebs = [eb, ebs];
-
-    Kp = 0.3;
-    Ki = 0.1;
-    Kd = 0.1;
+    Kp = 0.5;
+    Ki = 0.0;
+    Kd = 0.0;
 
     % Control functions
     % for now the integral and derivative terms are estimated using the
     % most barebones way imaginable
 
-    ua = Kp*ea + Ki*sum(eas) + Kd*(eas(1)-eas(2)); 
-    ub = Kp*eb + Ki*sum(ebs) + Kd*(ebs(1)-ebs(2)); 
+    ua = Kp*ea + Ki*(h*sum(eas)) + Kd*(eas(1)-4*eas(2)+3*eas(3))/(2*h); 
+    ub = Kp*eb + Ki*(h*sum(ebs)) + Kd*(ebs(1)-4*ebs(2)+3*ebs(3))/(2*h);
 
-    actARev = actARev + ua;
-    actBRev = actBRev + ub;
+    % modelling the actuators as a mass-damper system - "plant" behaviour
+
+    m = 0.5;
+    b = 0.3;
+
+    pa = - b*(actARevs(1)-4*actARevs(2)+3*actARevs(3))/(2*h) + m*(actARevs(1)-2*actARevs(2)+actARevs(3))/h^2;
+    pb = - b*(actBRevs(1)-4*actBRevs(2)+3*actBRevs(3))/(2*h) + m*(actBRevs(1)-2*actBRevs(2)+actBRevs(3))/h^2;
+
+    actARev = actARev + ua + pa;
+    actBRev = actBRev + ub + pa;
+
+    eas = [ea, eas];
+    ebs = [eb, ebs];
+
+    actARevs = [actARev, actARevs];
+    actBRevs = [actBRev, actBRevs];
 
     %actARev = actARevt;
     %actBRev = actBRevt;
 
 
-    % transfer function of actuator, modelled on a mass-damper system
-    m = 10;
-    b = 2;
-
-    s = tf('s');
-    P = 1/(m*s^2 + b*s);
     
     % end of PID section - now is just converting back to cartesian to draw
 
@@ -180,7 +188,7 @@ while true
     %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) + ...
          %", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
     
-    disp("ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
+    disp("thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) + ", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
 
 
     %angleCartesianReconvert = polar_cartesian(anglePolarRad(1),anglePolarRad(2))*180/pi;
@@ -471,7 +479,7 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing)
     xlim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
     ylim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
     zlim([-1.2*hEngine,abs(1.2*hMount)]);
-    view(-50,30);
+    view(-10,80);
     
     origin = plot3(0,0,0);
     origin.Marker = "o";
