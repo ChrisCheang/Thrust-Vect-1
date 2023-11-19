@@ -32,27 +32,11 @@ rEngine = 76;  % radius of the actuator engine mounts
 hTopRing = 100; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
 hEngine = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine bottom
 lPivot = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 40; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+hMount = 60; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
 rMount = 120; % radius of the stationary actuator mounts, r=120
-aMax = 16*pi/180; % maximum gimbal angle in radians
+aMax = 10*pi/180; % maximum gimbal angle in radians
 
-% first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
-axisA = [1,0,0];
 
-% Lists for parametric (choose)
-
-t = linspace(0,1,11);
-t2 = linspace(0,2*pi,31);
-
-% Line 1 = axisA, line 2 = axis B (rotated)
-
-X1 = 200*(2*t - 1)*axisA(1);
-Y1 = 200*(2*t - 1)*axisA(2);
-Z1 = 200*(2*t - 1)*axisA(3);
-
-%Axis B before rotation
-
-axisBP = [0,1,0];
 
 
 m = 1;
@@ -83,139 +67,25 @@ for n = 0:nsteps
     thetaA = cartesian(1);
     thetaB = cartesian(2);
 
-
-    axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
-    
-    X2 = 200*(2*t - 1)*axisB(1);
-    Y2 = 200*(2*t - 1)*axisB(2);
-    Z2 = 200*(2*t - 1)*axisB(3);
-    
-    %Line 3,4,5 : Circle representation
-    
-    %original position of circle with no rotation
-    
-    X3 = rEngine * cos(t2);
-    Y3 = rEngine * sin(t2);
-    Z3 = 0 * t2 - hTopRing;
-    
-    X4 = rEngine * cos(t2);
-    Y4 = rEngine * sin(t2);
-    Z4 = 0 * t2 - hEngine;
-
-    X5 = rEngine * cos(t2);
-    Y5 = rEngine * sin(t2);
-    Z5 = 0 * t2 - lPivot;
-
-    %Line 6: actuator 1 
-
-    act1MountEngine = [rEngine,0,-lPivot];
-    act1MountEngine = gimbal_cartesian(act1MountEngine,thetaA,thetaB);
-
-    X6 = rMount - t * (rMount - act1MountEngine(1));
-    Y6 = 0 - t * (0 - act1MountEngine(2));
-    Z6 = hMount - t * (hMount - act1MountEngine(3));
-
-    %Line 7: actuator 2 
-
-    act2MountEngine = [0,rEngine,-lPivot];
-    act2MountEngine = gimbal_cartesian(act2MountEngine,thetaA,thetaB);
-
-    X7 = 0 - t * (0 - act2MountEngine(1));
-    Y7 = rMount - t * (rMount - act2MountEngine(2));
-    Z7 = hMount - t * (hMount - act2MountEngine(3));
-
-    %Line 8: vertical axis
-
-    verticalAxis = [0,0,-hEngine];
-    verticalAxis = gimbal_cartesian(verticalAxis,thetaA,thetaB);
-
-    X8 = 0 - t * (0 - verticalAxis(1));
-    Y8 = 0 - t * (0 - verticalAxis(2));
-    Z8 = 0 - t * (0 - verticalAxis(3));
-
-    %calculating actuator clearance:
-
-    %pc1 and pc2 = approximations of closest point between actuator A, B 
-    % respectively and the top ring. This is acceptable, as the closest 
-    % distance between an actuator and the top ring occurs when the other 
-    % actuation angle is 0 (assuming the actuator stationary point is mounted
-    % above the top ring , where the approximation is the actual closest point
-
-    pc1 = [rEngine,0,-hTopRing];
-    pc1 = gimbal_cartesian(pc1,thetaA,thetaB);
-
-    pc2 = [0,rEngine,-hTopRing];
-    pc2 = gimbal_cartesian(pc2,thetaA,thetaB);
-
-
-    for i = 1:31   % gimbal each individual point of the circles
-        outpoint = gimbal_cartesian([X3(i),Y3(i),Z3(i)],thetaA,thetaB);
-        X3(i) = outpoint(1);
-        Y3(i) = outpoint(2);
-        Z3(i) = outpoint(3);
-
-        outpoint = gimbal_cartesian([X4(i),Y4(i),Z4(i)],thetaA,thetaB);
-        X4(i) = outpoint(1);
-        Y4(i) = outpoint(2);
-        Z4(i) = outpoint(3);
-
-        outpoint = gimbal_cartesian([X5(i),Y5(i),Z5(i)],thetaA,thetaB);
-        X5(i) = outpoint(1);
-        Y5(i) = outpoint(2);
-        Z5(i) = outpoint(3);
-    end
-    
-    %Plots
-
-    
-  
-    line1 = plot3(X1,Y1,Z1,'--','Color','b');
-    
-    hold on
-    axis equal
-    set(gca, 'Projection','perspective')
-    xlim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
-    ylim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
-    zlim([-1.2*hEngine,abs(1.2*hMount)]);
-    view(-50,30);
-    
-    origin = plot3(0,0,0);
-    origin.Marker = "o";
-    p1 = plot3(pc1(1),pc1(2),pc1(3));
-    p1.Marker = "x";
-    p2 = plot3(pc2(1),pc2(2),pc2(3));
-    p2.Marker = "+";
-    line2 = plot3(X2,Y2,Z2,'--');
-    line3 = plot3(X3,Y3,Z3);
-    line3 = plot3(X3,Y3,Z3);
-    line4 = plot3(X4,Y4,Z4);
-    line5 = plot3(X5,Y5,Z5);
-    line6 = plot3(X6,Y6,Z6);
-    line7 = plot3(X7,Y7,Z7);
-    line8 = plot3(X8,Y8,Z8,'--');
-    drawnow;
-    
-    
-    hold off
-
-    %set(gca,'XLim',[-200 200],'YLim',[-200 200],'ZLim',[-200 200]);
+    draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing);
 
 
     m = m + 1;
 
 
+    actLens = actuator_lengths_from_cartesian(thetaA,thetaB,rEngine,lPivot,rMount,hMount);
 
-    actALen = distance([rMount,0,hMount],act1MountEngine);
-    actBLen = distance([0,rMount,hMount],act2MountEngine);
+    actALen = actLens(1);
+    actBLen = actLens(2);
 
-    actAClearnace = pointLineDist(pc1,[rMount,0,hMount],act1MountEngine);
-    actBClearnace = pointLineDist(pc2,[0,rMount,hMount],act2MountEngine);
+    %actAClearnace = pointLineDist(pc1,[rMount,0,hMount],act1MountEngine);
+    %actBClearnace = pointLineDist(pc2,[0,rMount,hMount],act2MountEngine);
 
     actALens = [actALens, actALen];
     actBLens = [actBLens, actBLen];
 
-    actAClearances = [actAClearances, actAClearnace];
-    actBClearances = [actBClearances, actBClearnace];
+    %actAClearances = [actAClearances, actAClearnace];
+    %actBClearances = [actBClearances, actBClearnace];
 
     
         
@@ -269,13 +139,13 @@ end
 
 
 actALenLimits = [min(actALens),max(actALens)];
-actAClearanceMin = min(actAClearances);
+
 
 actBLenLimits = [min(actBLens),max(actBLens)];
-actBClearanceMin = min(actBClearances);
 
-disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2) + ", clearance = " + actAClearanceMin)
-disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2) + ", clearance = " + actBClearanceMin)
+
+disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2))
+disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2))
 
 inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
 
@@ -421,6 +291,141 @@ function [cartesianAngles] = polar_to_cartesian(thetaG, thetaR)
     thetaA = sign * atan2(norm(cross(pointProj,[0,0,-1])), dot(pointProj,[0,0,-1]));
 
     cartesianAngles = [thetaA,thetaB];
+end
+
+function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing)
+    % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
+    axisA = [1,0,0];
+    
+    % Lists for parametric (choose)
+    
+    t = linspace(0,1,11);
+    t2 = linspace(0,2*pi,31);
+    
+    % Line 1 = axisA, line 2 = axis B (rotated)
+    
+    X1 = 200*(2*t - 1)*axisA(1);
+    Y1 = 200*(2*t - 1)*axisA(2);
+    Z1 = 200*(2*t - 1)*axisA(3);
+    
+    %Axis B before rotation
+    
+    axisBP = [0,1,0];
+
+
+    axisB = rotate(axisBP,thetaA,[0,0,0],axisA);
+    
+    X2 = 200*(2*t - 1)*axisB(1);
+    Y2 = 200*(2*t - 1)*axisB(2);
+    Z2 = 200*(2*t - 1)*axisB(3);
+    
+    %Line 3,4,5 : Circle representation
+    
+    %original position of circle with no rotation
+    
+    X3 = rEngine * cos(t2);
+    Y3 = rEngine * sin(t2);
+    Z3 = 0 * t2 - hTopRing;
+    
+    X4 = rEngine * cos(t2);
+    Y4 = rEngine * sin(t2);
+    Z4 = 0 * t2 - hEngine;
+
+    X5 = rEngine * cos(t2);
+    Y5 = rEngine * sin(t2);
+    Z5 = 0 * t2 - lPivot;
+
+    %Line 6: actuator 1 
+
+    act1MountEngine = [rEngine,0,-lPivot];
+    act1MountEngine = gimbal_cartesian(act1MountEngine,thetaA,thetaB);
+
+    X6 = rMount - t * (rMount - act1MountEngine(1));
+    Y6 = 0 - t * (0 - act1MountEngine(2));
+    Z6 = hMount - t * (hMount - act1MountEngine(3));
+
+    %Line 7: actuator 2 
+
+    act2MountEngine = [0,rEngine,-lPivot];
+    act2MountEngine = gimbal_cartesian(act2MountEngine,thetaA,thetaB);
+
+    X7 = 0 - t * (0 - act2MountEngine(1));
+    Y7 = rMount - t * (rMount - act2MountEngine(2));
+    Z7 = hMount - t * (hMount - act2MountEngine(3));
+
+    %Line 8: vertical axis
+
+    verticalAxis = [0,0,-hEngine];
+    verticalAxis = gimbal_cartesian(verticalAxis,thetaA,thetaB);
+
+    X8 = 0 - t * (0 - verticalAxis(1));
+    Y8 = 0 - t * (0 - verticalAxis(2));
+    Z8 = 0 - t * (0 - verticalAxis(3));
+
+    %calculating actuator clearance:
+
+    %pc1 and pc2 = approximations of closest point between actuator A, B 
+    % respectively and the top ring. This is acceptable, as the closest 
+    % distance between an actuator and the top ring occurs when the other 
+    % actuation angle is 0 (assuming the actuator stationary point is mounted
+    % above the top ring , where the approximation is the actual closest point
+
+    pc1 = [rEngine,0,-hTopRing];
+    pc1 = gimbal_cartesian(pc1,thetaA,thetaB);
+
+    pc2 = [0,rEngine,-hTopRing];
+    pc2 = gimbal_cartesian(pc2,thetaA,thetaB);
+
+
+    for i = 1:31   % gimbal each individual point of the circles
+        outpoint = gimbal_cartesian([X3(i),Y3(i),Z3(i)],thetaA,thetaB);
+        X3(i) = outpoint(1);
+        Y3(i) = outpoint(2);
+        Z3(i) = outpoint(3);
+
+        outpoint = gimbal_cartesian([X4(i),Y4(i),Z4(i)],thetaA,thetaB);
+        X4(i) = outpoint(1);
+        Y4(i) = outpoint(2);
+        Z4(i) = outpoint(3);
+
+        outpoint = gimbal_cartesian([X5(i),Y5(i),Z5(i)],thetaA,thetaB);
+        X5(i) = outpoint(1);
+        Y5(i) = outpoint(2);
+        Z5(i) = outpoint(3);
+    end
+    
+    %Plots
+
+    
+  
+    line1 = plot3(X1,Y1,Z1,'--','Color','b');
+    
+    hold on
+    axis equal
+    set(gca, 'Projection','perspective')
+    xlim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
+    ylim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
+    zlim([-1.2*hEngine,abs(1.2*hMount)]);
+    view(-50,30);
+    
+    origin = plot3(0,0,0);
+    origin.Marker = "o";
+    p1 = plot3(pc1(1),pc1(2),pc1(3));
+    p1.Marker = "x";
+    p2 = plot3(pc2(1),pc2(2),pc2(3));
+    p2.Marker = "+";
+    line2 = plot3(X2,Y2,Z2,'--');
+    line3 = plot3(X3,Y3,Z3);
+    line3 = plot3(X3,Y3,Z3);
+    line4 = plot3(X4,Y4,Z4);
+    line5 = plot3(X5,Y5,Z5);
+    line6 = plot3(X6,Y6,Z6);
+    line7 = plot3(X7,Y7,Z7);
+    line8 = plot3(X8,Y8,Z8,'--');
+    drawnow;
+    
+    
+    hold off
 end
 
 function dist = distance(pointA,pointB)
