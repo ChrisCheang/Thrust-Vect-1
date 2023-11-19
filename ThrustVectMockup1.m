@@ -60,6 +60,12 @@ nsteps = 64;
 thetaGt = 0;
 thetaRt = 0;
 
+actARev = 0;
+actBRev = 0;
+
+eas = [0];  % cumulating the error values for the integral term
+ebs = [0];  
+
 while true
     
     % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
@@ -82,10 +88,30 @@ while true
     % end of target pos section
 
     % PID test of total motor rotations
-    % for now just say actual = target 
+    % currently this is two separate SISO systems - see if it works
+
+    ea = actARevt - actARev;  % error terms of the two actuators
+    eb = actBRevt - actBRev;  % target - actual
     
-    actARev = actARevt;
-    actBRev = actBRevt;
+    eas = [ea, eas];
+    ebs = [eb, ebs];
+
+    Kp = 0.3;
+    Ki = 0.1;
+    Kd = 0.1;
+
+    % Control functions
+    % for now the integral and derivative terms are estimated using the
+    % most barebones way imaginable
+
+    ua = Kp*ea + Ki*sum(eas) + Kd*(eas(1)-eas(2)); 
+    ub = Kp*eb + Ki*sum(ebs) + Kd*(ebs(1)-ebs(2)); 
+
+    actARev = actARev + ua;
+    actBRev = actBRev + ub;
+
+    %actARev = actARevt;
+    %actBRev = actBRevt;
 
 
     % transfer function of actuator, modelled on a mass-damper system
