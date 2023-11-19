@@ -56,16 +56,27 @@ thetaAinverses = [];
 
 nsteps = 64;
 
-for n = 0:nsteps
+thetaA = 0;
+thetaB = 0;
+
+while true
     
+    mouse = get( 0, 'PointerLocation' );
+    x = 2*(mouse(1)/1383-0.5);
+    y = 2*(mouse(2)/1383-0.15);
 
-    thetaG = aMax;  %n/nsteps*
-    thetaR = -pi + 2*pi*n/nsteps + 0.00001;
 
-    cartesian = polar_to_cartesian(thetaG, thetaR);
+    %thetaG = aMax;  %n/nsteps*
+    %thetaR = -pi + 2*pi*n/nsteps + 0.00001;
 
-    thetaA = cartesian(1);
-    thetaB = cartesian(2);
+    %cartesian = polar_to_cartesian(thetaG, thetaR);
+    polar = cartesian_to_polar(-y,x);
+    
+    if polar(1) < aMax;
+        thetaA = -y;%cartesian(1);
+        thetaB = x;%cartesian(2);
+    end
+     
 
     draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing);
 
@@ -440,8 +451,8 @@ function dist = pointLineDist(pt, v1, v2)  %taken from https://uk.mathworks.com/
 end
 
 function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
-    lead = 5;
-    gearRatio = 5;
+    lead = 4;
+    gearRatio = 1;
     delta_dis = actuator_dis-neutral_dis;
     nActuatorRev = delta_dis/lead;
     nRotation = nActuatorRev*gearRatio;
