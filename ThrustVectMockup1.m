@@ -97,11 +97,14 @@ while true
         thetaGt = 0;
         thetaRt = -pi;
     elseif 30 <= n & n < 40
-        thetaGt = aMax;
+        thetaGt = aMax*(n-30)/10;
         thetaRt = -pi + 0.0001;
     elseif 40 <= n & n < 40 + nsteps
         thetaGt = aMax;
         thetaRt = -pi + 2*pi*(n-40)/nsteps+ 0.0001;
+    elseif 40 + nsteps <= n & n < 50 + nsteps
+        thetaGt = aMax * (1 - (n - 40 - nsteps)/10);
+        thetaRt = pi;
     else
         thetaGt = 0;
         thetaRt = pi;
