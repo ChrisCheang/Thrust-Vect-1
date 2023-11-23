@@ -29,12 +29,12 @@ thetaB = 0;
 
 % Dimensions for the engine (currently defined not very rigorously)
 
-rEngine = 76;  % radius of the actuator engine mounts
-hTopRing = 100; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-hEngine = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine bottom
-lPivot = hTopRing+208; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 60; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
-rMount = 120; % radius of the stationary actuator mounts, r=120
+rEngine = 90.168;  % radius of the actuator engine mounts
+hTopRing = 55; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+hEngine = 298; % axial (z) distance downwards between the pivot point and the engine bottom
+lPivot = hEngine; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+hMount = 65; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+rMount = 180; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 4; % lead of ball screw in mm
 
@@ -71,7 +71,7 @@ actBRevs = [0,0,0];
 
 n = 0;
 
-while true
+while n<150
     
     % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
 
@@ -248,6 +248,9 @@ actBLenLimits = [min(actBLens),max(actBLens)];
 
 disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2))
 disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2))
+
+disp("Neutral Length = " + actuator_neutral(rEngine,lPivot,rMount,hMount))
+disp("Ideal Limits = " + actuator_limits(rEngine,lPivot,rMount,hMount,aMax))
 
 inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
 
