@@ -563,3 +563,11 @@ function [nRotations] = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rM
     nRotations(1) = MotorActuatorRevolution(neutral_dis,ActALen);
     nRotations(2) = MotorActuatorRevolution(neutral_dis,ActBLen);
 end
+
+function [lengths] = actuation_transient(thetaG,thetaR,thetaGt,thetaRt, t)
+    ga = thetaG*cos(thetaR) + t*(thetaGt*cos(thetaRt)-thetaG*cos(thetaR));
+    gb = thetaG*sin(thetaR) + t*(thetaGt*sin(thetaRt)-thetaG*sin(thetaR));
+    hg = sqrt(ga^2+gb^2);
+    hr = atan2(gb,ga);
+
+end
