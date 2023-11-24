@@ -570,4 +570,13 @@ function [lengths] = actuation_transient(thetaG,thetaR,thetaGt,thetaRt, t)
     hg = sqrt(ga^2+gb^2);
     hr = atan2(gb,ga);
 
+    wpts = [0 1];
+
+    tpts = 0:1;
+    
+    numsamples = 100;
+    
+    [q,qd,qdd,qddd,pp,timepoints,tsamples] = minjerkpolytraj(wpts,tpts,numsamples,VelocityBoundaryCondition=[2 0]);
+    
+    plot(tsamples,q);
 end
