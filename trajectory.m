@@ -1,4 +1,4 @@
-function trajectories = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel)
+function trajectory = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel)
 
     % used to compute a smooth straight trajectory with minimum jerk from a
     % current pos to a target pos. Not really needed for a ground test with
@@ -121,13 +121,9 @@ function trajectories = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel
         nRotBPoints(i) = nRotsPoints(2);
     end
 
-
-    % current output: 3x50 array below - can be converted to pos at time t
-    % later
-    trajectories = [tPoints; nRotAPoints; nRotBPoints];
-
     
-    %
+    % graphs to compare between correct and not corrected trajectories
+    %{
     plot(tPoints,nRotAPoints)
     hold on
     plot(tPoints,nRotBPoints)
@@ -135,7 +131,35 @@ function trajectories = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel
     plot(tPoints, nRots(2) + q*(nRotst(2) - nRots(2)))
     legend('With Correction for actuator A','With Correction for actuator B', 'Without correction for A','Without correction for B');
     hold off
-    %
+    %}
+
+
+    % polynomial approximations
+    order = 10;
+    pA = polyfit(tPoints, nRotAPoints, order);
+    pB = polyfit(tPoints, nRotBPoints, order);
+
+
+    % graphs to compare actual trace to order 10 polynomial approximations
+    %{
+    plot(tPoints,nRotAPoints)
+    hold on
+    plot(tPoints,nRotBPoints)
+    plot(tPoints, polyval(pA,tPoints))
+    plot(tPoints, polyval(pB,tPoints))
+    legend('With Correction for actuator A','With Correction for actuator B', 'polyfit for A','polyfit for B');
+    hold off
+    %}
+
+
+    % output mode 1: 3x50 array
+    % trajectory = [tPoints; nRotAPoints; nRotBPoints];
+    
+    % output mode 2: target points at time t (t = 0 at current pos)
+    nRotA = polyval(pA,min([t,tf]));
+    nRotB = polyval(pB,min([t,tf]));
+
+    trajectory = [nRotA, nRotB];
 
 
 end
