@@ -75,7 +75,7 @@ while n<150
     
     % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
 
-    %
+    %{
     %mouse version
     mouse = get( 0, 'PointerLocation' );
     x = 2*(mouse(1)/1383-0.5);
@@ -89,80 +89,43 @@ while n<150
         end
         thetaRt = atan2(y,x);
     end
-    %
+    %}
 
     %
     %set function version
     if n < 30
-        thetaGt = 0;
+        thetaGt = 0.000001;
         thetaRt = -pi;
     elseif 30 <= n & n < 40
-        thetaGt = aMax*(n-30)/10;
-        thetaRt = -pi + 0.0001;
+        thetaGt = aMax*(n-30)/10 + 0.000001;
+        thetaRt = -pi + 0.000001;
     elseif 40 <= n & n < 40 + nsteps
         thetaGt = aMax;
-        thetaRt = -pi + 2*pi*(n-40)/nsteps+ 0.0001;
+        thetaRt = -pi + 2*pi*(n-40)/nsteps+ 0.000001;
     elseif 40 + nsteps <= n & n < 50 + nsteps
         thetaGt = aMax * (1 - (n - 40 - nsteps)/10);
         thetaRt = pi;
     else
-        thetaGt = 0;
+        thetaGt = 0.0000001;
         thetaRt = pi;
     end
     n = n + 1;
     %}
 
+    % IMPORTANT NOTE!: It is probably a good idea to add some sort of error
+    % clause, such that if tvcInverse or tvcForward returns an error, the
+    % previous value is used instead.
+
     actuatorTargetRevs = actuator_revs_from_polar(thetaGt,thetaRt,rEngine,lPivot,rMount,hMount);
     actARevt = actuatorTargetRevs(1);
     actBRevt = actuatorTargetRevs(2);
     
-
-    % end of target pos section
-
-    % PID test of total motor rotations
-    % currently this is two separate SISO systems - see if it works
-
-    ea = actARevt - actARev;  % error terms of the two actuators
-    eb = actBRevt - actBRev;  % target - actual
-    
-    Kp = 1; % 0.3
-    Ki = 0;
-    Kd = 0; % - 0.3
-
-    % Control functions
-    % for now the integral and derivative terms are estimated using the
-    % most barebones way imaginable
-
-    ua = Kp*ea + Ki*(h*sum(eas)) + Kd*(eas(1)-eas(2))/h;
-    ub = Kp*eb + Ki*(h*sum(ebs)) + Kd*(ebs(1)-ebs(2))/h;
-
-    % modelling the actuators as a mass-damper system - "plant" behaviour
-
-    m = 0.2;
-    b = 0.2;
-
-    pa = - b*(actARevs(1)-actARevs(2))/h + m*(actARevs(1)-2*actARevs(2)+actARevs(3))/h^2;
-    pb = - b*(actBRevs(1)-actBRevs(2))/h + m*(actBRevs(1)-2*actBRevs(2)+actBRevs(3))/h^2;
-
-    actARev = actARev + ua + pa;
-    actBRev = actBRev + ub + pa;
-
-    eas = [ea, eas];
-    ebs = [eb, ebs];
-
-    actARevs = [actARev, actARevs];
-    actBRevs = [actBRev, actBRevs];
-
-    %actARev = actARevt;
-    %actBRev = actBRevt;
-
-
-    
-    % end of PID section - now is just converting back to cartesian to draw
+    % note: removed PID simulating session, as ODrive takes care of all
+    % that
 
     neutralLen = actuator_neutral(rEngine,lPivot,rMount,hMount);
-    actA = neutralLen + actARev*lead;
-    actB = neutralLen + actBRev*lead;
+    actA = neutralLen + actARevt*lead;
+    actB = neutralLen + actBRevt*lead;
 
     cartesian = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax);
     thetaA = cartesian(1);
@@ -208,32 +171,41 @@ while n<150
     %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) ...
         %+ ", ActA = " + actALen + ", ActB = " + actBLen + ", inv: thetaA = " + inverseAngles(1)*180/pi + ", thetaB = " + inverseAngles(2)*180/pi)
 
-    % With motor rotation function
+    % With motor rotation function - for testing
     neutralLength = actuator_neutral(rEngine,lPivot,rMount,hMount);
     actARot = MotorActuatorRevolution(neutralLength,actALen);
     actBRot = MotorActuatorRevolution(neutralLength,actBLen);
 
+    % Kinematics check - actARev and actBRev is what's drawn
+    thetas = tvcForward(actARevt,actBRevt,rEngine,lPivot,rMount,hMount);
+    nRots = tvcInverse(thetas(1),thetas(2),rEngine,lPivot,rMount,hMount);
+
+    errors = nRots - [actARot, actBRot];
+    error = errors(1) + errors(2);
+    %disp("error = " + error)
+
+
+    % Bunch of different display options below
+
+    disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
+    %disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Converted thetas: thetaG = " + thetas(1) + ", thetaR = " + thetas(2) + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
+
+
     %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) + ...
          %", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
     
-    disp("thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) + ", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
+    %disp("thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) + ", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
 
 
-    angleCartesianReconvert = polar_to_cartesian(anglePolarRad(1),anglePolarRad(2))*180/pi;
+    % testing polar to cartesian conversion
+    %angleCartesianReconvert = polar_to_cartesian(anglePolarRad(1),anglePolarRad(2))*180/pi;
     %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " ...
         %+ anglePolar(2) + ", Reconversion check: thetaA = " + angleCartesianReconvert(1) + ", thetaB = " + angleCartesianReconvert(2))
 
 
     %mov(m) = getframe();
 
-
-
-    %testing inverse kinematics iterative version - find better solution
-    %later!
-    
-    
-
-
+   
     
 
 end
@@ -268,7 +240,7 @@ n = linspace(0,nsteps,nsteps+1);
 
 
 % function for rotating a point around any line, defined by position vector pointCentre and direction vector 
-function [pointOut] = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zout] = rotate(xin,yin,zin,x0,y0,z0,theta,xvec,yvec,zvec)
+function pointOut = rotate(pointIn,theta,pointCentre,vector)  % [xout,yout,zout] = rotate(xin,yin,zin,x0,y0,z0,theta,xvec,yvec,zvec)
     % Define rotation quaternion q and inverse
     q0 = cos(theta/2);
     q1 = vector(1)*sin(theta/2);
@@ -297,7 +269,7 @@ end
 % Note: the pointCentre bit doesn't work yet
 
 %
-function [pointOut] = gimbal_cartesian(pointIn,A,B)
+function pointOut = gimbal_cartesian(pointIn,A,B)
     aA = [1,0,0];  %axis A
     aB = rotate([0,1,0],A,[0,0,0],aA);  %axis B
     point = rotate(pointIn,A,[0,0,0],aA);
@@ -306,7 +278,7 @@ end
 %
 
 %
-function [lengths] = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount)
+function lengths = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount)
 
     act1MountEngine = [rEngine*cos(pi/4),rEngine*sin(pi/4),-lPivot];
     act1MountEngine = gimbal_cartesian(act1MountEngine,A,B);
@@ -319,7 +291,7 @@ end
 %
 
 %
-function [limits] = actuator_limits(rEngine,lPivot,rMount,hMount,aMax)
+function limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax)
     %Consider the limits of actuator B as thetaA goes from -aMax to aMax - 90 degree ver (old)
 
     % 45 deg ver: consider actuator A
@@ -337,8 +309,8 @@ function length = actuator_neutral(rEngine,lPivot,rMount,hMount)
 end
 
 %
-function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
-    function [angles] = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+function angles = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+    function angles = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
     
         %Uses and iterative method, based on a linear actuator length - gimbal
         %angle assumption for first guess
@@ -374,7 +346,7 @@ function [angles] = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMo
 end
 %
 
-function [polarAngles] = cartesian_to_polar(A, B)
+function polarAngles = cartesian_to_polar(A, B)
     % Gimbal angle (polarAngles(1)) range = 0 < theta < pi/2, Roll angle
     % (polarAngles(2)) range = -pi < 0 < pi, 0 is x-axis
     point = gimbal_cartesian([0,0,-1],A,B);
@@ -382,13 +354,13 @@ function [polarAngles] = cartesian_to_polar(A, B)
     polarAngles(2) = atan2(point(2),point(1));
 end
 
-function [cartesianAngles] = unit_point_to_cartesian(point)
+function cartesianAngles = unit_point_to_cartesian(point)
     thetaG = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
     thetaR = atan2(point(2),point(1));
     cartesianAngles = polar_to_cartesian(thetaG, thetaR);
 end
 
-function [cartesianAngles] = polar_to_cartesian(thetaG, thetaR)
+function cartesianAngles = polar_to_cartesian(thetaG, thetaR)
     axes = [1,0,0];
     axes = rotate(axes,thetaR-pi/2,[0,0,0],[0,0,1]); % use this to define the axis of rotation for polar gimbal angle
     point = [0,0,-1];
@@ -556,7 +528,7 @@ function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
     nRotation = delta_dis/lead;
 end
 
-function [nRotations] = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
+function nRotations = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
     neutral_dis = actuator_neutral(rEngine,lPivot,rMount,hMount);
     cartesianAngles = polar_to_cartesian(thetaG, thetaR);
     A = cartesianAngles(1);
@@ -568,21 +540,4 @@ function [nRotations] = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rM
 
     nRotations(1) = MotorActuatorRevolution(neutral_dis,ActALen);
     nRotations(2) = MotorActuatorRevolution(neutral_dis,ActBLen);
-end
-
-function [lengths] = actuation_transient(thetaG,thetaR,thetaGt,thetaRt, t)
-    ga = thetaG*cos(thetaR) + t*(thetaGt*cos(thetaRt)-thetaG*cos(thetaR));
-    gb = thetaG*sin(thetaR) + t*(thetaGt*sin(thetaRt)-thetaG*sin(thetaR));
-    hg = sqrt(ga^2+gb^2);
-    hr = atan2(gb,ga);
-
-    wpts = [0 1];
-
-    tpts = 0:1;
-    
-    numsamples = 100;
-    
-    [q,qd,qdd,qddd,pp,timepoints,tsamples] = minjerkpolytraj(wpts,tpts,numsamples,VelocityBoundaryCondition=[2 0]);
-    
-    plot(tsamples,q);
 end
