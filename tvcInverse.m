@@ -25,7 +25,6 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
     
         %Add the pointCentre back
         pointOut = [xout,yout,zout] + pointCentre;
-
     end
     % Note: the pointCentre bit doesn't work yet
     
@@ -35,33 +34,32 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
         aB = rotate([0,1,0],A,[0,0,0],aA);  %axis B
         point = rotate(pointIn,A,[0,0,0],aA);
         pointOut = rotate(point,B,[0,0,0],aB);
-
     end
     %
     
     %
     function lengths = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount)
     
-        act1MountEngine = [rEngine,0,-lPivot];
+        act1MountEngine = [rEngine*cos(pi/4),rEngine*sin(pi/4),-lPivot];
         act1MountEngine = gimbal_cartesian(act1MountEngine,A,B);
-        length1 = distance([rMount,0,hMount],act1MountEngine);
+        lengths(1) = distance([rMount*cos(pi/4),rMount*sin(pi/4),hMount],act1MountEngine);
     
-        act2MountEngine = [0,rEngine,-lPivot];
+        act2MountEngine = [rEngine*cos(3*pi/4),rEngine*sin(3*pi/4),-lPivot];
         act2MountEngine = gimbal_cartesian(act2MountEngine,A,B);
-        length2 = distance([0,rMount,hMount],act2MountEngine);
-
-        lengths = [length1, length2];
+        lengths(2) = distance([rMount*cos(3*pi/4),rMount*sin(3*pi/4),hMount],act2MountEngine);
     end
     %
     
     %
     function limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax)
-        %Consider the limits of actuator B as thetaA goes from -aMax to aMax
-        BFullRetract = actuator_lengths_from_cartesian(-aMax,0,rEngine,lPivot,rMount,hMount);
-        BFullExtend = actuator_lengths_from_cartesian(aMax,0,rEngine,lPivot,rMount,hMount);
-        min = BFullRetract(2);
-        max = BFullExtend(2);
-        limits = [min, max];
+        %Consider the limits of actuator B as thetaA goes from -aMax to aMax - 90 degree ver (old)
+    
+        % 45 deg ver: consider actuator A
+        min = polar_to_cartesian(aMax,pi/4);
+        max = polar_to_cartesian(aMax,-3*pi/4);
+        BFullRetract = actuator_lengths_from_cartesian(min(1),min(2),rEngine,lPivot,rMount,hMount);
+        BFullExtend = actuator_lengths_from_cartesian(max(1),max(2),rEngine,lPivot,rMount,hMount);
+        limits = [BFullRetract(1), BFullExtend(1)];
     end
     %
     
@@ -71,8 +69,8 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
     end
     
     %
-    function thetas = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
-        function thetas = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+    function angles = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+        function angles = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
         
             %Uses and iterative method, based on a linear actuator length - gimbal
             %angle assumption for first guess
@@ -93,7 +91,8 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
         
             thetaA = thetaAguess(2);%2*aMax*(actB-min)/actRange - aMax;
             thetaB = - thetaBguess(2);%- (2*aMax*(actA-min)/actRange - aMax);  % for some reason I don't know about yet thetaB needs to be flipped
-            thetas = [thetaA, thetaB];
+        
+            angles = [thetaA,thetaB];
         end
         function F = root2d(x);  %x1 = thetaA, x2 = thetaB
             F = actuator_lengths_from_cartesian(x(1),x(2),rEngine,lPivot,rMount,hMount) - [actA,actB];
@@ -103,31 +102,25 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
         x0 = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax);
         x = fsolve(fun,x0,options);
         
-        thetaALocal = x(1);
-        thetaBLocal = x(2);
-        thetas = [thetaALocal, thetaBLocal];
+        angles = x;
     end
     %
     
-    function thetas = cartesian_to_polar(A, B)
+    function polarAngles = cartesian_to_polar(A, B)
         % Gimbal angle (polarAngles(1)) range = 0 < theta < pi/2, Roll angle
         % (polarAngles(2)) range = -pi < 0 < pi, 0 is x-axis
         point = gimbal_cartesian([0,0,-1],A,B);
-        thetaGLocal = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
-        thetaRLocal = atan2(point(2),point(1));
-        thetas = [thetaGLocal, thetaRLocal];
+        polarAngles(1) = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
+        polarAngles(2) = atan2(point(2),point(1));
     end
     
-    function thetas = unit_point_to_cartesian(point)
-        thetaGLocal = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
-        thetaRLocal = atan2(point(2),point(1));
-        cartesianAngles = polar_to_cartesian(thetaGLocal, thetaRLocal);
-        thetaA = cartesianAngles(1);
-        thetaB = cartesianAngles(2);
-        thetas = [thetaA, thetaB];
+    function cartesianAngles = unit_point_to_cartesian(point)
+        thetaG = atan2(norm(cross(point,[0,0,-1])), dot(point,[0,0,-1]));
+        thetaR = atan2(point(2),point(1));
+        cartesianAngles = polar_to_cartesian(thetaG, thetaR);
     end
     
-    function thetas = polar_to_cartesian(thetaG, thetaR)
+    function cartesianAngles = polar_to_cartesian(thetaG, thetaR)
         axes = [1,0,0];
         axes = rotate(axes,thetaR-pi/2,[0,0,0],[0,0,1]); % use this to define the axis of rotation for polar gimbal angle
         point = [0,0,-1];
@@ -139,7 +132,8 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
         pointProj = [0,point(2),point(3)];
         sign = - abs(thetaR)/thetaR;
         thetaA = sign * atan2(norm(cross(pointProj,[0,0,-1])), dot(pointProj,[0,0,-1]));
-        thetas = [thetaA, thetaB];
+    
+        cartesianAngles = [thetaA,thetaB];
     end
     
     function dist = distance(pointA,pointB)
@@ -169,33 +163,11 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
         ActALen = ActLens(1);
         ActBLen = ActLens(2);
     
-        nRotation1 = MotorActuatorRevolution(neutral_dis,ActALen);
-        nRotation2 = MotorActuatorRevolution(neutral_dis,ActBLen);
-        nRotations = [nRotation1, nRotation2];
-    end
-    
-    function lens = actuation_transient(thetaG,thetaR,thetaGt,thetaRt, t)
-        ga = thetaG*cos(thetaR) + t*(thetaGt*cos(thetaRt)-thetaG*cos(thetaR));
-        gb = thetaG*sin(thetaR) + t*(thetaGt*sin(thetaRt)-thetaG*sin(thetaR));
-        hg = sqrt(ga^2+gb^2);
-        hr = atan2(gb,ga);
-    
-        wpts = [0 1];
-    
-        tpts = 0:1;
-        
-        numsamples = 100;
-        
-        [q,qd,qdd,qddd,pp,timepoints,tsamples] = minjerkpolytraj(wpts,tpts,numsamples,VelocityBoundaryCondition=[2 0]);
-        
-        plot(tsamples,q);
-
-        %currently unfinished! (placeholders here)
-        lenA = 1;
-        lenB = 1;
-        lens = [lenA, lenB];
+        nRotations(1) = MotorActuatorRevolution(neutral_dis,ActALen);
+        nRotations(2) = MotorActuatorRevolution(neutral_dis,ActBLen);
     end
 
-nRots = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rMount,hMount);
+
+    nRots = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rMount,hMount);
 
 end
