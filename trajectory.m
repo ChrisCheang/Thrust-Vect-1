@@ -45,11 +45,11 @@ function trajectory = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel)
 
    
 
-    rEngine = 90.168;  % radius of the actuator engine mounts
-    hTopRing = 55; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-    hEngine = 298; % axial (z) distance downwards between the pivot point and the engine bottom
+    rEngine = 70;  % radius of the actuator engine mounts
+    hTopRing = 63; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+    hEngine = 303; % axial (z) distance downwards between the pivot point and the engine bottom
     lPivot = hEngine; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-    hMount = 65; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+    hMount = 63; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
     rMount = 180; % radius of the stationary actuator mounts, r=120
     aMax = 10*pi/180; % maximum gimbal angle in radians
     lead = 4; % lead of ball screw in mm
@@ -123,7 +123,7 @@ function trajectory = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel)
 
     
     % graphs to compare between correct and not corrected trajectories
-    %{
+    %
     plot(tPoints,nRotAPoints)
     hold on
     plot(tPoints,nRotBPoints)
@@ -131,7 +131,7 @@ function trajectory = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel)
     plot(tPoints, nRots(2) + q*(nRotst(2) - nRots(2)))
     legend('With Correction for actuator A','With Correction for actuator B', 'Without correction for A','Without correction for B');
     hold off
-    %}
+    %
 
 
     % polynomial approximations
