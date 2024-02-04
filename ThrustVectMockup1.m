@@ -27,13 +27,14 @@ thetaB = 0;
 
 % The origin is defined as the common pivot point of both DoF.
 
-% Dimensions for the engine (currently defined not very rigorously)
+% Dimensions for the engine (currently defined not very rigorously but works)
+% 4-2-2024: updated values for regen tvc, no changes to design required
 
-rEngine = 90.168;  % radius of the actuator engine mounts
-hTopRing = 55; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-hEngine = 298; % axial (z) distance downwards between the pivot point and the engine bottom
+rEngine = 70;  % radius of the actuator engine mounts
+hTopRing = 63; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+hEngine = 303; % axial (z) distance downwards between the pivot point and the engine bottom
 lPivot = hEngine; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 65; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+hMount = 63; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
 rMount = 180; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 4; % lead of ball screw in mm
