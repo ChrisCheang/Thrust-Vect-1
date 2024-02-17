@@ -34,7 +34,7 @@ rEngine = 70;  % radius of the actuator engine mounts
 hTopRing = 63; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
 hEngine = 303; % axial (z) distance downwards between the pivot point and the engine bottom
 lPivot = hEngine; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 63; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
+hMount = 63;%-19.6; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
 rMount = 180; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 4; % lead of ball screw in mm
@@ -70,9 +70,9 @@ ebs = [0,0,0];
 actARevs = [0,0,0];
 actBRevs = [0,0,0];
 
-n = 0;
+n = 30;
 
-while n<150
+while n < 50 + nsteps%150
     
     % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
 
@@ -186,7 +186,14 @@ while n<150
     %disp("error = " + error)
 
 
+    actARevs = [actARot, actARevs];
+    actBRevs = [actBRot, actBRevs];
+
+
     % Bunch of different display options below
+
+    %disp(actARot)
+    %disp(actBRot)
 
     disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
     %disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Converted thetas: thetaG = " + thetas(1) + ", thetaR = " + thetas(2) + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
@@ -226,6 +233,9 @@ disp("Ideal Limits = " + actuator_limits(rEngine,lPivot,rMount,hMount,aMax))
 
 inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
 
+
+%disp(actARevs)
+%disp(actBRevs)
 
 n = linspace(0,nsteps,nsteps+1);
 
