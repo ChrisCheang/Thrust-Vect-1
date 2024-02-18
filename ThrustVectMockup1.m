@@ -72,7 +72,7 @@ actBRevs = [0,0,0];
 
 n = 30;
 
-while n < 50 + nsteps%150
+while n < 50 + nsteps + 1%150
     
     % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
 
@@ -96,19 +96,24 @@ while n < 50 + nsteps%150
     %set function version
     if n < 30
         thetaGt = 0.000001;
-        thetaRt = -pi;
+        thetaRt = pi/2;
+        thetaRt = mod(thetaRt-pi,2*pi)-pi;
     elseif 30 <= n & n < 40
         thetaGt = aMax*(n-30)/10 + 0.000001;
-        thetaRt = -pi + 0.000001;
+        thetaRt = pi/2 + 0.000001;
+        thetaRt = mod(thetaRt-pi,2*pi)-pi;
     elseif 40 <= n & n < 40 + nsteps
         thetaGt = aMax;
-        thetaRt = -pi + 2*pi*(n-40)/nsteps+ 0.000001;
+        thetaRt = pi/2 + 2*pi*(n-40)/nsteps+ 0.000001;
+        thetaRt = mod(thetaRt-pi,2*pi)-pi;
     elseif 40 + nsteps <= n & n < 50 + nsteps
         thetaGt = aMax * (1 - (n - 40 - nsteps)/10);
-        thetaRt = pi;
+        thetaRt = 5*pi/2;
+        thetaRt = mod(thetaRt-pi,2*pi)-pi;
     else
         thetaGt = 0.0000001;
-        thetaRt = pi;
+        thetaRt = 5*pi/2;
+        thetaRt = mod(thetaRt-pi,2*pi)-pi;
     end
     n = n + 1;
     %}
@@ -195,7 +200,8 @@ while n < 50 + nsteps%150
     %disp(actARot)
     %disp(actBRot)
 
-    disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
+
+    %disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
     %disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Converted thetas: thetaG = " + thetas(1) + ", thetaR = " + thetas(2) + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
 
 
