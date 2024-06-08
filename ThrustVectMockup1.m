@@ -1,6 +1,4 @@
-clc,clearvars
-close all;
-clear;
+clc
 
 %oldpath = path;
 %path('C:\Users\Chris Cheang\MATLAB\Projects\Thrust Vect Mockup 1', oldpath)
@@ -30,14 +28,18 @@ thetaB = 0;
 % Dimensions for the engine (currently defined not very rigorously but works)
 % 4-2-2024: updated values for regen tvc, no changes to design required
 
-rEngine = 70;  % radius of the actuator engine mounts
+rEngine = 50;  % radius of the actuator engine mounts
 hTopRing = 63; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-hEngine = 303; % axial (z) distance downwards between the pivot point and the engine bottom
+hEngine = 220; % axial (z) distance downwards between the pivot point and the engine bottom
 lPivot = hEngine; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 63;%-19.6; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
-rMount = 180; % radius of the stationary actuator mounts, r=120
+hMount = 150; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
+rMount = 225; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 4; % lead of ball screw in mm
+
+% 8-6-2024: Changing back to side mount from angle mount to accomodate legs
+% note: don't put = 0 or else something breaks
+mountangle = 0.0001;%pi/4;
 
 h = 1; % i.e step size in time in s
 
@@ -70,9 +72,12 @@ ebs = [0,0,0];
 actARevs = [0,0,0];
 actBRevs = [0,0,0];
 
-n = 30;
+n = 1;
 
-while n < 50 + nsteps + 1%150
+
+
+
+while n < 50+nsteps+1 %n < 50 + nsteps + 1%150
     
     % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
 
@@ -115,35 +120,37 @@ while n < 50 + nsteps + 1%150
         thetaRt = 5*pi/2;
         thetaRt = mod(thetaRt-pi,2*pi)-pi;
     end
+
+    pause(0.01)
     n = n + 1;
-    %}
+    %
 
     % IMPORTANT NOTE!: It is probably a good idea to add some sort of error
     % clause, such that if tvcInverse or tvcForward returns an error, the
     % previous value is used instead.
 
-    actuatorTargetRevs = actuator_revs_from_polar(thetaGt,thetaRt,rEngine,lPivot,rMount,hMount);
+    actuatorTargetRevs = actuator_revs_from_polar(thetaGt,thetaRt,rEngine,lPivot,rMount,hMount,mountangle);
     actARevt = actuatorTargetRevs(1);
     actBRevt = actuatorTargetRevs(2);
     
     % note: removed PID simulating session, as ODrive takes care of all
     % that
 
-    neutralLen = actuator_neutral(rEngine,lPivot,rMount,hMount);
+    neutralLen = actuator_neutral(rEngine,lPivot,rMount,hMount,mountangle);
     actA = neutralLen + actARevt*lead;
     actB = neutralLen + actBRevt*lead;
 
-    cartesian = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax);
+    cartesian = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax,mountangle);
     thetaA = cartesian(1);
     thetaB = cartesian(2);
     
-    draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing);
+    draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mountangle);
 
 
     m = m + 1;
 
 
-    actLens = actuator_lengths_from_cartesian(thetaA,thetaB,rEngine,lPivot,rMount,hMount);
+    actLens = actuator_lengths_from_cartesian(thetaA,thetaB,rEngine,lPivot,rMount,hMount,mountangle);
 
     actALen = actLens(1);
     actBLen = actLens(2);
@@ -166,7 +173,7 @@ while n < 50 + nsteps + 1%150
     anglePolar = round(anglePolarRad*180/pi,2);
 
 
-    inverseAngles = cartesian_from_actuator_lengths(actALen,actBLen,rEngine,lPivot,rMount,hMount,aMax);
+    inverseAngles = cartesian_from_actuator_lengths(actALen,actBLen,rEngine,lPivot,rMount,hMount,aMax,mountangle);
 
 
     thetaAs = [thetaAs, thetaA];
@@ -178,7 +185,7 @@ while n < 50 + nsteps + 1%150
         %+ ", ActA = " + actALen + ", ActB = " + actBLen + ", inv: thetaA = " + inverseAngles(1)*180/pi + ", thetaB = " + inverseAngles(2)*180/pi)
 
     % With motor rotation function - for testing
-    neutralLength = actuator_neutral(rEngine,lPivot,rMount,hMount);
+    neutralLength = actuator_neutral(rEngine,lPivot,rMount,hMount,mountangle);
     actARot = MotorActuatorRevolution(neutralLength,actALen);
     actBRot = MotorActuatorRevolution(neutralLength,actBLen);
 
@@ -204,7 +211,7 @@ while n < 50 + nsteps + 1%150
     %disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
     %disp("ActARot = " + actARot + ", ActBRot = " + actBRot + ". Converted thetas: thetaG = " + thetas(1) + ", thetaR = " + thetas(2) + ". Reconverted: ActARot = " + nRots(1) + ", ActBRot = " + nRots(2))
 
-
+    disp("thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2))
     %disp("thetaA = " + angleA + ", thetaB = " + angleB + ", thetaGimbal = " + anglePolar(1) + ", thetaRoll = " + anglePolar(2) + ...
          %", ActA = " + actALen + ", ActB = " + actBLen + ", ActARot = " + actARot + ", ActBRot = " + actBRot)
     
@@ -234,10 +241,11 @@ actBLenLimits = [min(actBLens),max(actBLens)];
 disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2))
 disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2))
 
-disp("Neutral Length = " + actuator_neutral(rEngine,lPivot,rMount,hMount))
-disp("Ideal Limits = " + actuator_limits(rEngine,lPivot,rMount,hMount,aMax))
 
-inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax);
+disp("Neutral Length = " + actuator_neutral(rEngine,lPivot,rMount,hMount,mountangle))
+disp("Ideal Limits = " + actuator_limits(rEngine,lPivot,rMount,hMount,aMax,mountangle))
+
+inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax,mountangle);
 
 
 %disp(actARevs)
@@ -295,43 +303,43 @@ end
 %
 
 %
-function lengths = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount)
+function lengths = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount,mountangle)
 
-    act1MountEngine = [rEngine*cos(pi/4),rEngine*sin(pi/4),-lPivot];
+    act1MountEngine = [rEngine*cos(mountangle),rEngine*sin(mountangle),-lPivot];
     act1MountEngine = gimbal_cartesian(act1MountEngine,A,B);
-    lengths(1) = distance([rMount*cos(pi/4),rMount*sin(pi/4),hMount],act1MountEngine);
+    lengths(1) = distance([rMount*cos(mountangle),rMount*sin(mountangle),hMount],act1MountEngine);
 
-    act2MountEngine = [rEngine*cos(3*pi/4),rEngine*sin(3*pi/4),-lPivot];
+    act2MountEngine = [rEngine*cos(mountangle + pi/2),rEngine*sin(mountangle + pi/2),-lPivot];
     act2MountEngine = gimbal_cartesian(act2MountEngine,A,B);
-    lengths(2) = distance([rMount*cos(3*pi/4),rMount*sin(3*pi/4),hMount],act2MountEngine);
+    lengths(2) = distance([rMount*cos(mountangle + pi/2),rMount*sin(mountangle + pi/2),hMount],act2MountEngine);
 end
 %
 
 %
-function limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax)
+function limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax,mountangle)
     %Consider the limits of actuator B as thetaA goes from -aMax to aMax - 90 degree ver (old)
 
     % 45 deg ver: consider actuator A
-    min = polar_to_cartesian(aMax,pi/4);
-    max = polar_to_cartesian(aMax,-3*pi/4);
-    BFullRetract = actuator_lengths_from_cartesian(min(1),min(2),rEngine,lPivot,rMount,hMount);
-    BFullExtend = actuator_lengths_from_cartesian(max(1),max(2),rEngine,lPivot,rMount,hMount);
+    min = polar_to_cartesian(aMax,mountangle);
+    max = polar_to_cartesian(aMax,mountangle + pi);
+    BFullRetract = actuator_lengths_from_cartesian(min(1),min(2),rEngine,lPivot,rMount,hMount,mountangle);
+    BFullExtend = actuator_lengths_from_cartesian(max(1),max(2),rEngine,lPivot,rMount,hMount,mountangle);
     limits = [BFullRetract(1), BFullExtend(1)];
 end
 %
 
-function length = actuator_neutral(rEngine,lPivot,rMount,hMount)
-    lengths = actuator_lengths_from_cartesian(0,0,rEngine,lPivot,rMount,hMount);
+function length = actuator_neutral(rEngine,lPivot,rMount,hMount,mountangle)
+    lengths = actuator_lengths_from_cartesian(0,0,rEngine,lPivot,rMount,hMount,mountangle);
     length = lengths(1);
 end
 
 %
-function angles = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
-    function angles = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax)
+function angles = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMount,hMount,aMax,mountangle)
+    function angles = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax,mountangle)
     
         %Uses and iterative method, based on a linear actuator length - gimbal
         %angle assumption for first guess
-        limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax);
+        limits = actuator_limits(rEngine,lPivot,rMount,hMount,aMax,mountangle);
         min = limits(1);
         max = limits(2);
         actRange = max - min;
@@ -352,11 +360,11 @@ function angles = cartesian_from_actuator_lengths(actA,actB,rEngine,lPivot,rMoun
         angles = [thetaA,thetaB];
     end
     function F = root2d(x);  %x1 = thetaA, x2 = thetaB
-        F = actuator_lengths_from_cartesian(x(1),x(2),rEngine,lPivot,rMount,hMount) - [actA,actB];
+        F = actuator_lengths_from_cartesian(x(1),x(2),rEngine,lPivot,rMount,hMount,mountangle) - [actA,actB];
     end
     fun = @root2d;
     options = optimoptions('fsolve','Display','Off');
-    x0 = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax);
+    x0 = cartesian_from_actuator_lengths_estimate(actA,actB,rEngine,lPivot,rMount,hMount,aMax,mountangle);
     x = fsolve(fun,x0,options);
     
     angles = x;
@@ -393,7 +401,7 @@ function cartesianAngles = polar_to_cartesian(thetaG, thetaR)
     cartesianAngles = [thetaA,thetaB];
 end
 
-function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing)
+function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mountangle)
     % first define the first axis of rotation as a quaternion (thetaA, vectorA), which is always fixed by the top bracket
     axisA = [1,0,0];
     
@@ -401,7 +409,8 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing)
     
     t = linspace(0,1,11);
     t2 = linspace(0,2*pi,31);
-    
+
+
     % Line 1 = axisA, line 2 = axis B (rotated)
     
     X1 = 200*(2*t - 1)*axisA(1);
@@ -437,20 +446,20 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing)
 
     %Line 6: actuator 1 
 
-    act1MountEngine = [rEngine*cos(pi/4),rEngine*sin(pi/4),-lPivot];
+    act1MountEngine = [rEngine*cos(mountangle),rEngine*sin(mountangle),-lPivot];
     act1MountEngine = gimbal_cartesian(act1MountEngine,thetaA,thetaB);
 
-    X6 = rMount*cos(pi/4) - t * (rMount*cos(pi/4) - act1MountEngine(1));
-    Y6 = rMount*sin(pi/4) - t * (rMount*sin(pi/4) - act1MountEngine(2));
+    X6 = rMount*cos(mountangle) - t * (rMount*cos(mountangle) - act1MountEngine(1));
+    Y6 = rMount*sin(mountangle) - t * (rMount*sin(mountangle) - act1MountEngine(2));
     Z6 = hMount - t * (hMount - act1MountEngine(3));
 
     %Line 7: actuator 2 
 
-    act2MountEngine = [rEngine*cos(3*pi/4),rEngine*sin(3*pi/4),-lPivot];
+    act2MountEngine = [rEngine*cos(mountangle + pi/2),rEngine*sin(mountangle + pi/2),-lPivot];
     act2MountEngine = gimbal_cartesian(act2MountEngine,thetaA,thetaB);
 
-    X7 = rMount*cos(3*pi/4) - t * (rMount*cos(3*pi/4) - act2MountEngine(1));
-    Y7 = rMount*sin(3*pi/4) - t * (rMount*sin(3*pi/4) - act2MountEngine(2));
+    X7 = rMount*cos(mountangle + pi/2) - t * (rMount*cos(mountangle + pi/2) - act2MountEngine(1));
+    Y7 = rMount*sin(mountangle + pi/2) - t * (rMount*sin(mountangle + pi/2) - act2MountEngine(2));
     Z7 = hMount - t * (hMount - act2MountEngine(3));
 
     %Line 8: vertical axis
@@ -470,10 +479,10 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing)
     % actuation angle is 0 (assuming the actuator stationary point is mounted
     % above the top ring , where the approximation is the actual closest point
 
-    pc1 = [rEngine*cos(pi/4),rEngine*sin(pi/4),-hTopRing];
+    pc1 = [rEngine*cos(mountangle),rEngine*sin(mountangle),-hTopRing];
     pc1 = gimbal_cartesian(pc1,thetaA,thetaB);
 
-    pc2 = [rEngine*cos(3*pi/4),rEngine*sin(3*pi/4),-hTopRing];
+    pc2 = [rEngine*cos(mountangle + pi/2),rEngine*sin(mountangle + pi/2),-hTopRing];
     pc2 = gimbal_cartesian(pc2,thetaA,thetaB);
 
 
@@ -506,7 +515,7 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing)
     xlim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
     ylim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
     zlim([-1.2*hEngine,abs(1.2*hMount)]);
-    %view(-10,80);
+    %view(0,0);
     
     origin = plot3(0,0,0);
     origin.Marker = "o";
@@ -545,13 +554,13 @@ function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
     nRotation = delta_dis/lead;
 end
 
-function nRotations = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
-    neutral_dis = actuator_neutral(rEngine,lPivot,rMount,hMount);
+function nRotations = actuator_revs_from_polar(thetaG,thetaR,rEngine,lPivot,rMount,hMount,mountangle)
+    neutral_dis = actuator_neutral(rEngine,lPivot,rMount,hMount,mountangle);
     cartesianAngles = polar_to_cartesian(thetaG, thetaR);
     A = cartesianAngles(1);
     B = cartesianAngles(2);
 
-    ActLens = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount);
+    ActLens = actuator_lengths_from_cartesian(A,B,rEngine,lPivot,rMount,hMount,mountangle);
     ActALen = ActLens(1);
     ActBLen = ActLens(2);
 
