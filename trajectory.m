@@ -44,15 +44,15 @@ function trajectory = trajectory(thetaG, thetaR, thetaGt, thetaRt, t, maxAccel)
     % (see if useful?) fit polynomial to rotA and rotB waypoints
 
    
-
-    rEngine = 70;  % radius of the actuator engine mounts
-    hTopRing = 63; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-    hEngine = 303; % axial (z) distance downwards between the pivot point and the engine bottom
-    lPivot = hEngine; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-    hMount = 63; % axial (z) distance upwards between the pivot point and the stationary actuator mount points
-    rMount = 180; % radius of the stationary actuator mounts, r=120
+    % 28-10-2024 - hopper engine ver.1 stats
+    rEngine = 32;  % radius of the actuator engine mounts
+    hTopRing = 60; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+    hEngine = 200; % axial (z) distance downwards between the pivot point and the engine bottom
+    lPivot = 140; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+    hMount = 0; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
+    rMount = 150; % radius of the stationary actuator mounts, r=120
     aMax = 10*pi/180; % maximum gimbal angle in radians
-    lead = 4; % lead of ball screw in mm
+    lead = 2; % lead of ball screw in mm
     
 
     % initial cartesian position
