@@ -32,9 +32,9 @@ thetaB = 0;
 rEngine = 32;  % radius of the actuator engine mounts
 hTopRing = 60; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
 hEngine = 200; % axial (z) distance downwards between the pivot point and the engine bottom
-lPivot = 140; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+lPivot = 180; % axial (z) distance downwards between the pivot point and the engine actuator mount points
 hMount = 0; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
-rMount = 150; % radius of the stationary actuator mounts, r=120
+rMount = 90; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 2; % lead of ball screw in mm
 
@@ -146,6 +146,7 @@ while n < 50+nsteps+1 %n < 50 + nsteps + 1%150
     thetaB = cartesian(2);
     
     draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mountangle);
+    clearances = clearance(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mountangle);
 
 
     m = m + 1;
@@ -162,9 +163,8 @@ while n < 50+nsteps+1 %n < 50 + nsteps + 1%150
     actALens = [actALens, actALen];
     actBLens = [actBLens, actBLen];
 
-    %actAClearances = [actAClearances, actAClearnace];
-    %actBClearances = [actBClearances, actBClearnace];
-
+    actAClearances = [actAClearances, clearances(1)];
+    actBClearances = [actBClearances, clearances(2)];
     
         
     angleA = round(thetaA*180/pi,2);
@@ -232,12 +232,14 @@ while n < 50+nsteps+1 %n < 50 + nsteps + 1%150
 
 end
 
+clearanceLimits = [min(actAClearances),min(actBClearances)];
 
 actALenLimits = [min(actALens),max(actALens)];
 
 
 actBLenLimits = [min(actBLens),max(actBLens)];
 
+disp("Act A minClearance " + clearanceLimits(1) + ", Act B minClearances = " + clearanceLimits(2))
 
 disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2))
 disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2))
@@ -246,7 +248,7 @@ disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(
 disp("Neutral Length = " + actuator_neutral(rEngine,lPivot,rMount,hMount,mountangle))
 disp("Ideal Limits = " + actuator_limits(rEngine,lPivot,rMount,hMount,aMax,mountangle))
 
-inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax,mountangle);
+%inverseAngles = cartesian_from_actuator_lengths(369.9,350.2,rEngine,lPivot,rMount,hMount,aMax,mountangle);
 
 
 %disp(actARevs)
@@ -474,7 +476,7 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mounta
 
     %calculating actuator clearance:
 
-    %pc1 and pc2 = approximations of closest point between actuator A, B 
+    % pc1 and pc2 = approximations of closest point between actuator A, B 
     % respectively and the top ring. This is acceptable, as the closest 
     % distance between an actuator and the top ring occurs when the other 
     % actuation angle is 0 (assuming the actuator stationary point is mounted
@@ -486,6 +488,8 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mounta
     pc2 = [rEngine*cos(mountangle + pi/2),rEngine*sin(mountangle + pi/2),-hTopRing];
     pc2 = gimbal_cartesian(pc2,thetaA,thetaB);
 
+    actAClearance = pointLineDist(pc1,[rMount,0,hMount],act1MountEngine);
+    actBClearance = pointLineDist(pc2,[0,rMount,hMount],act2MountEngine);
 
     for i = 1:31   % gimbal each individual point of the circles
         outpoint = gimbal_cartesian([X3(i),Y3(i),Z3(i)],thetaA,thetaB);
@@ -515,7 +519,7 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mounta
     set(gca, 'Projection','perspective')
     xlim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
     ylim([-max([2*rEngine,1.5*rMount]),max([2*rEngine,1.5*rMount])]);
-    zlim([-1.2*hEngine,abs(1.2*hMount)]);
+    zlim([-1.2*hEngine,abs(hMount)+0.3*rMount]);
     %view(0,0);
     
     origin = plot3(0,0,0);
@@ -536,6 +540,34 @@ function draw(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mounta
     
     
     hold off
+end
+
+function dist = clearance(thetaA,thetaB,rEngine,hEngine,lPivot,rMount,hMount,hTopRing,mountangle)
+
+    act1MountEngine = [rEngine*cos(mountangle),rEngine*sin(mountangle),-lPivot];
+    act1MountEngine = gimbal_cartesian(act1MountEngine,thetaA,thetaB);
+
+    act2MountEngine = [rEngine*cos(mountangle + pi/2),rEngine*sin(mountangle + pi/2),-lPivot];
+    act2MountEngine = gimbal_cartesian(act2MountEngine,thetaA,thetaB);
+
+    %calculating actuator clearance:
+
+    % pc1 and pc2 = approximations of closest point between actuator A, B 
+    % respectively and the top ring. This is acceptable, as the closest 
+    % distance between an actuator and the top ring occurs when the other 
+    % actuation angle is 0 (assuming the actuator stationary point is mounted
+    % above the top ring , where the approximation is the actual closest point
+
+    pc1 = [rEngine*cos(mountangle),rEngine*sin(mountangle),-hTopRing];
+    pc1 = gimbal_cartesian(pc1,thetaA,thetaB);
+
+    pc2 = [rEngine*cos(mountangle + pi/2),rEngine*sin(mountangle + pi/2),-hTopRing];
+    pc2 = gimbal_cartesian(pc2,thetaA,thetaB);
+
+    actAClearance = pointLineDist(pc1,[rMount,0,hMount],act1MountEngine);
+    actBClearance = pointLineDist(pc2,[0,rMount,hMount],act2MountEngine);
+
+    dist = [actAClearance,actBClearance];
 end
 
 function dist = distance(pointA,pointB)
