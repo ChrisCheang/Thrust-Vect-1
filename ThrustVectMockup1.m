@@ -27,15 +27,16 @@ thetaB = 0;
 
 % Dimensions for the engine (currently defined not very rigorously but works)
 % 4-2-2024: updated values for regen tvc, no changes to design required
+% 28-10-2024: updated values for skywalker ver 1 tvc
 
-rEngine = 50;  % radius of the actuator engine mounts
-hTopRing = 63; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-hEngine = 220; % axial (z) distance downwards between the pivot point and the engine bottom
-lPivot = hEngine; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 150; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
-rMount = 225; % radius of the stationary actuator mounts, r=120
+rEngine = 32;  % radius of the actuator engine mounts
+hTopRing = 60; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+hEngine = 200; % axial (z) distance downwards between the pivot point and the engine bottom
+lPivot = 140; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+hMount = 0; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
+rMount = 150; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
-lead = 4; % lead of ball screw in mm
+lead = 2; % lead of ball screw in mm
 
 % 8-6-2024: Changing back to side mount from angle mount to accomodate legs
 % note: don't put = 0 or else something breaks
@@ -549,7 +550,7 @@ function dist = pointLineDist(pt, v1, v2)  %taken from https://uk.mathworks.com/
 end
 
 function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
-    lead = 4;
+    lead = 2;
     delta_dis = actuator_dis-neutral_dis;
     nRotation = delta_dis/lead;
 end
