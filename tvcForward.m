@@ -148,7 +148,7 @@ function thetas = tvcForward(nRotA,nRotB,rEngine,lPivot,rMount,hMount)
     end
     
     function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
-        lead = 4;
+        lead = 2;
         delta_dis = actuator_dis-neutral_dis;
         nRotation = delta_dis/lead;
     end
@@ -172,7 +172,7 @@ function thetas = tvcForward(nRotA,nRotB,rEngine,lPivot,rMount,hMount)
     neutral = actuator_neutral(rEngine,lPivot,rMount,hMount);
 
     % Quick fix - these two values is the same with the global version!
-    lead = 4;
+    lead = 2;
     aMax = 10 * pi/180;
 
 
