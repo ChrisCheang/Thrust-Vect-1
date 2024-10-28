@@ -148,7 +148,7 @@ function nRots = tvcInverse(thetaG,thetaR,rEngine,lPivot,rMount,hMount)
     end
     
     function nRotation = MotorActuatorRevolution(neutral_dis,actuator_dis)
-        lead = 4;
+        lead = 2;
         delta_dis = actuator_dis-neutral_dis;
         nRotation = delta_dis/lead;
     end
