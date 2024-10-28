@@ -24,7 +24,8 @@ resolution = 8192;
 
 A = zeros(length(M(:,1))-1,11);  
 % 1 time, 2 thetaG, 3 thetaR, 4 current0, 5 current1, 6 torque0, 7 torque1
-% 8 force0, 9 force1, 10 turns0, 11 turns1, 12 speed0, 13 speed1
+% 8 force0, 9 force1, 10 turns0, 11 turns1, 12 speed0, 13 speed1, 14
+% accel0, 15 accel1
 
 for t = 1:length(M(:,1))-1
     thetas = tvcForward(M(t,3)/resolution,M(t,4)/resolution,rEngine,lPivot,rMount,hMount);
@@ -72,6 +73,15 @@ A(len,12) = (A(len,10) - A(len-1,10)) / (A(len,1)-A(len-1,1)); % backward divide
 A(len,13) = (A(len,11) - A(len-1,11)) / (A(len,1)-A(len-1,1));
 % 
 
+% calculating accels, first and last points don't matter
+for t = 2:len-1
+    %A(t,14) = (A(t+1,10) - 2*A(t,10) + A(t-1,10)) / ((A(t+1,1) - A(t,1))*(A(t,1) - A(t-1,1))); % central 2nd order for middle points
+    %A(t,15) = (A(t+1,11) - 2*A(t,11) + A(t-1,11)) / ((A(t+1,1) - A(t,1))*(A(t,1) - A(t-1,1)));
+    A(t,14) = (A(t+1,12) - A(t-1,12)) / (A(t+1,1) - A(t-1,1)); % central divided difference for middle points
+    A(t,15) = (A(t+1,13) - A(t-1,13)) / (A(t+1,1) - A(t-1,1));
+
+end
+% 
 
 
 figure
@@ -81,12 +91,33 @@ grid on
 xlabel('time(s)');
 
 % torque
-%
+%{
 ylabel('smoothed torque (Nm)');
 plot(A(:,1),A(:,6));
 plot(A(:,1),A(:,7));
 legend('motor0','motor1');
 %}
+
+% pos
+%{
+ylabel('motor pos (revs)');
+plot(A(:,1),A(:,10));
+plot(A(:,1),A(:,11));
+legend('pos0','pos1');
+xlim([4 6]);
+%}
+
+% speed and accel
+%
+ylabel('accel (revs/s^2) OR speed (revs/s)');
+plot(A(:,1),A(:,12));
+plot(A(:,1),A(:,13));
+plot(A(:,1),A(:,14));
+plot(A(:,1),A(:,15));
+legend('speed0','speed1','accel0','accel1');
+xlim([4 6]);
+%}
+
 
 % gimbal angle
 %{
