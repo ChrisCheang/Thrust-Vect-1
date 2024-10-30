@@ -32,9 +32,9 @@ thetaB = 0;
 rEngine = 32;  % radius of the actuator engine mounts
 hTopRing = 60; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
 hEngine = 200; % axial (z) distance downwards between the pivot point and the engine bottom
-lPivot = 180; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 0; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
-rMount = 90; % radius of the stationary actuator mounts, r=120
+lPivot = 140; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+hMount = 50; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
+rMount = 100; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 2; % lead of ball screw in mm
 
@@ -244,6 +244,8 @@ disp("Act A minClearance " + clearanceLimits(1) + ", Act B minClearances = " + c
 disp("Act A minLength = " + actALenLimits(1) + ", maxLength = " + actALenLimits(2))
 disp("Act B minLength = " + actBLenLimits(1) + ", maxLength = " + actBLenLimits(2))
 
+range = actALenLimits(2) - actBLenLimits(1);
+disp("Range = " + range)
 
 disp("Neutral Length = " + actuator_neutral(rEngine,lPivot,rMount,hMount,mountangle))
 disp("Ideal Limits = " + actuator_limits(rEngine,lPivot,rMount,hMount,aMax,mountangle))
