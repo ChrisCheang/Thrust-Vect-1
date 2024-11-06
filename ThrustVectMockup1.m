@@ -29,12 +29,12 @@ thetaB = 0;
 % 4-2-2024: updated values for regen tvc, no changes to design required
 % 28-10-2024: updated values for skywalker ver 1 tvc
 
-rEngine = 55;  % radius of the actuator engine mounts
-hTopRing = 170; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
-hEngine = 310; % axial (z) distance downwards between the pivot point and the engine bottom
-lPivot = 170; % axial (z) distance downwards between the pivot point and the engine actuator mount points
-hMount = 30; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
-rMount = 80; % radius of the stationary actuator mounts, r=120
+rEngine = 45;  % radius of the actuator engine mounts
+hTopRing = 23; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
+hEngine = 166.9; % axial (z) distance downwards between the pivot point and the engine bottom
+lPivot = 183.9; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+hMount = 5; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
+rMount = 120; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 2; % lead of ball screw in mm
 
