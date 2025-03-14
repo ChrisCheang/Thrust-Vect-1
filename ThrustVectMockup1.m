@@ -29,18 +29,18 @@ thetaB = 0;
 % 4-2-2024: updated values for regen tvc, no changes to design required
 % 28-10-2024: updated values for skywalker ver 1 tvc
 
-rEngine = 45;  % radius of the actuator engine mounts
+rEngine = 32;  % radius of the actuator engine mounts
 hTopRing = 23; % axial (z) distance downwards between the pivot point and the engine top ring (bottom edge)
 hEngine = 166.9; % axial (z) distance downwards between the pivot point and the engine bottom
-lPivot = 183.9; % axial (z) distance downwards between the pivot point and the engine actuator mount points
+lPivot = 106.9; % axial (z) distance downwards between the pivot point and the engine actuator mount points
 hMount = 5; % axial (z) distance upwards between the pivot point and the stationary actuator mount points. 17-2: before cut = 63, after should = 63-14.8
-rMount = 120; % radius of the stationary actuator mounts, r=120
+rMount = 203; % radius of the stationary actuator mounts, r=120
 aMax = 10*pi/180; % maximum gimbal angle in radians
 lead = 2; % lead of ball screw in mm
 
 % 8-6-2024: Changing back to side mount from angle mount to accomodate legs
 % note: don't put = 0 or else something breaks
-mountangle = 0.0001;%pi/4;
+mountangle = pi/4; %0.0001
 
 h = 1; % i.e step size in time in s
 
@@ -73,12 +73,12 @@ ebs = [0,0,0];
 actARevs = [0,0,0];
 actBRevs = [0,0,0];
 
-n = 1;
+n = 0;
 
 
 
 
-while n < 50+nsteps+1 %n < 50 + nsteps + 1%150
+while n < 12 %n < 50 + nsteps + 1%150
     
     % This first section gives the target for the TVC to follow, can be given by mouse or set function. 
 
@@ -98,7 +98,7 @@ while n < 50+nsteps+1 %n < 50 + nsteps + 1%150
     end
     %}
 
-    %
+    %{
     %set function version
     if n < 30
         thetaGt = 0.000001;
@@ -124,15 +124,25 @@ while n < 50+nsteps+1 %n < 50 + nsteps + 1%150
 
     pause(0.01)
     n = n + 1;
-    %
+    %}
 
     % IMPORTANT NOTE!: It is probably a good idea to add some sort of error
     % clause, such that if tvcInverse or tvcForward returns an error, the
     % previous value is used instead.
 
-    actuatorTargetRevs = actuator_revs_from_polar(thetaGt,thetaRt,rEngine,lPivot,rMount,hMount,mountangle);
-    actARevt = actuatorTargetRevs(1);
-    actBRevt = actuatorTargetRevs(2);
+    %actuatorTargetRevs = actuator_revs_from_polar(thetaGt,thetaRt,rEngine,lPivot,rMount,hMount,mountangle);
+
+    %actARevt = actuatorTargetRevs(1);
+    %actBRevt = actuatorTargetRevs(2);
+
+
+    amax = 10;
+    a = 0.6;
+
+    actARevt = amax*sin(pi*(a*(n-2)+1)^2);
+    actBRevt = -amax*cos(pi*(a*(n-2)+1)^2);
+
+    n = n + 0.1;
     
     % note: removed PID simulating session, as ODrive takes care of all
     % that
